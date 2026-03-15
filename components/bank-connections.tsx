@@ -176,11 +176,13 @@ export function BankConnections() {
       if (res.ok) {
         const data = await res.json();
 
-        // If we got an auth URL, open it
         if (data.authUrl) {
-          window.open(data.authUrl, "_blank");
+          // Redirect to GoCardless auth — they'll redirect back to /api/banks/callback
+          window.location.href = data.authUrl;
+          return; // Don't update UI — page is navigating away
         }
 
+        // Non-Nordigen (CSV, demo) — show done immediately
         setWizardStep("done");
         await fetchConnections();
       }

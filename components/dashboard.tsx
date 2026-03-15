@@ -127,10 +127,14 @@ export function Dashboard() {
   }, [fetchInvoices, fetchUnreadCount]);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
+    // Always redirect regardless of signOut result
+    window.location.href = "/login";
   };
 
   const handleMarkPaid = async (id: string) => {

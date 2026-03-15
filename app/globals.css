@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
+  --color-primary: #0d9488;
+  --color-primary-dark: #0f766e;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
@@ -45,7 +45,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-teal-700 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
@@ -105,7 +105,7 @@
   }
 
   .tab-active {
-    @apply text-blue-600;
+    @apply text-teal-600;
   }
 
   .tab-inactive {

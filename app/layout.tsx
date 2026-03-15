@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Invoice Tracker",
-  description: "Mobile-first invoice management — scan, track, never overpay",
+  title: "Ricordo — Your AI Payment Memory",
+  description: "AI-powered bill management. Never pay twice.",
 };
 
 export const viewport: Viewport = {
@@ -11,7 +11,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#2563eb",
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({

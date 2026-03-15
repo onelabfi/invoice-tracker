@@ -54,12 +54,14 @@ interface InvoiceCardProps {
   invoice: Invoice;
   onMarkPaid: (id: string) => void;
   onDelete: (id: string) => void;
+  onTap?: () => void;
 }
 
 export function InvoiceCard({
   invoice,
   onMarkPaid,
   onDelete,
+  onTap,
 }: InvoiceCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -105,7 +107,7 @@ export function InvoiceCard({
         <div className={`w-1 flex-shrink-0 ${colors.bar}`} />
 
         {/* Main content */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 cursor-pointer" onClick={() => onTap?.()}>
           {/* Top row */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">

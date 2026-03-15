@@ -11,6 +11,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: "Paid",
     className: "bg-emerald-500 text-white",
   },
+  "possibly-paid": {
+    label: "Possibly Paid",
+    className: "bg-amber-100 text-amber-800 border border-amber-300",
+  },
   overdue: {
     label: "Overdue",
     className: "bg-red-500 text-white",
@@ -30,6 +34,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   predicted: {
     label: "Expected",
     className: "bg-purple-100 text-purple-700 border border-purple-200",
+  },
+  matched: {
+    label: "Matched",
+    className: "bg-teal-500 text-white",
   },
 };
 

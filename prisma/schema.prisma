@@ -51,9 +51,30 @@ model Transaction {
   merchant      String
   amount        Float
   reference     String?
+  description   String?
   date          DateTime
   rawData       String?
   matches       Match[]
+  createdAt     DateTime @default(now())
+}
+
+model BankConnection {
+  id            String   @id @default(cuid())
+  bankName      String
+  accountName   String?
+  status        String   @default("connected")
+  lastSynced    DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  title         String
+  message       String
+  type          String   @default("info")
+  invoiceId     String?
+  read          Boolean  @default(false)
+  actionType    String?
   createdAt     DateTime @default(now())
 }
 

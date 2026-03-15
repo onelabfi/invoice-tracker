@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   Upload,
   X,
@@ -40,6 +41,7 @@ export function UploadDialog({
   onUploaded,
   initialTab = "file",
 }: UploadDialogProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<DialogTab>(initialTab);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export function UploadDialog({
           </button>
 
           <h2 className="text-lg font-bold text-gray-900 mb-3">
-            Add Invoice
+            {t("add_invoice")}
           </h2>
 
           {/* Tab selector */}
@@ -175,7 +177,7 @@ export function UploadDialog({
                 }`}
               >
                 <Camera className="h-4 w-4" />
-                Camera
+                {t("camera")}
               </button>
               <button
                 onClick={() => {
@@ -191,7 +193,7 @@ export function UploadDialog({
                 }`}
               >
                 <FileText className="h-4 w-4" />
-                File
+                {t("file")}
               </button>
               <button
                 onClick={() => {
@@ -207,7 +209,7 @@ export function UploadDialog({
                 }`}
               >
                 <Edit3 className="h-4 w-4" />
-                Manual
+                {t("manual")}
               </button>
             </div>
           )}
@@ -223,27 +225,27 @@ export function UploadDialog({
                   <CheckCircle className="h-7 w-7 text-emerald-600" />
                 </div>
                 <p className="text-base font-semibold text-gray-900">
-                  Invoice Processed
+                  {t("invoice_processed")}
                 </p>
               </div>
 
               {/* Extracted data */}
               <div className="rounded-xl bg-gray-50 p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Vendor</span>
+                  <span className="text-gray-500">{t("vendor")}</span>
                   <span className="font-semibold text-gray-900">
                     {String(result.extracted.vendor)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Amount</span>
+                  <span className="text-gray-500">{t("amount")}</span>
                   <span className="font-semibold text-gray-900">
                     {result.extracted.amount} {String(result.extracted.currency)}
                   </span>
                 </div>
                 {result.extracted.invoiceNumber && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Invoice #</span>
+                    <span className="text-gray-500">{t("invoice_hash")}</span>
                     <span className="font-medium text-gray-900">
                       {String(result.extracted.invoiceNumber)}
                     </span>
@@ -251,7 +253,7 @@ export function UploadDialog({
                 )}
                 {result.extracted.dueDate && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Due Date</span>
+                    <span className="text-gray-500">{t("due_date")}</span>
                     <span className="font-medium text-gray-900">
                       {String(result.extracted.dueDate)}
                     </span>
@@ -259,7 +261,7 @@ export function UploadDialog({
                 )}
                 {result.extracted.iban && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">IBAN</span>
+                    <span className="text-gray-500">{t("iban")}</span>
                     <span className="font-medium text-gray-900 font-mono text-xs">
                       {String(result.extracted.iban)}
                     </span>
@@ -267,7 +269,7 @@ export function UploadDialog({
                 )}
                 {result.extracted.confidence !== undefined && (
                   <div className="flex justify-between text-sm pt-1 border-t border-gray-200">
-                    <span className="text-gray-500">Confidence</span>
+                    <span className="text-gray-500">{t("confidence")}</span>
                     <span className="font-medium text-gray-900">
                       {Math.round(result.extracted.confidence * 100)}%
                     </span>
@@ -284,18 +286,18 @@ export function UploadDialog({
                     <div>
                       <h3 className="font-semibold text-orange-800">
                         {result.duplicateCheck.isReminder
-                          ? "Reminder Detected"
-                          : "Possible Duplicate"}
+                          ? t("reminder_detected")
+                          : t("possible_duplicate_upload")}
                       </h3>
                       <p className="mt-1 text-sm text-orange-700">
                         {result.duplicateCheck.reason}
                       </p>
                       <p className="mt-1 text-xs text-orange-600">
-                        Confidence:{" "}
+                        {t("confidence")}:{" "}
                         {Math.round(result.duplicateCheck.confidence * 100)}%
                       </p>
                       <p className="mt-2 text-sm font-semibold text-orange-800">
-                        Do NOT pay this separately.
+                        {t("do_not_pay_separately")}
                       </p>
                     </div>
                   </div>
@@ -303,7 +305,7 @@ export function UploadDialog({
               )}
 
               <button onClick={handleClose} className="btn-primary w-full">
-                Done
+                {t("done")}
               </button>
             </div>
           ) : tab === "manual" ? (
@@ -347,7 +349,7 @@ export function UploadDialog({
                       }}
                       className="text-sm text-red-500 hover:text-red-700 font-medium ml-2"
                     >
-                      Retake
+                      {t("retake")}
                     </button>
                   </div>
                 </div>
@@ -361,10 +363,10 @@ export function UploadDialog({
                   </div>
                   <div>
                     <p className="text-base font-semibold text-gray-900">
-                      Take a Photo
+                      {t("take_a_photo")}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Open your camera to scan an invoice
+                      {t("open_camera_desc")}
                     </p>
                   </div>
                 </button>
@@ -379,7 +381,7 @@ export function UploadDialog({
               {file && (
                 <div className="mt-4 flex gap-3">
                   <button onClick={handleClose} className="btn-secondary flex-1">
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     onClick={handleUpload}
@@ -389,10 +391,10 @@ export function UploadDialog({
                     {uploading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Scanning...
+                        {t("scanning")}
                       </>
                     ) : (
-                      "Scan Invoice"
+                      t("scan_invoice")
                     )}
                   </button>
                 </div>
@@ -451,7 +453,7 @@ export function UploadDialog({
                       }}
                       className="text-xs text-red-500 hover:text-red-700 font-medium"
                     >
-                      Remove
+                      {t("remove")}
                     </button>
                   </div>
                 ) : (
@@ -461,16 +463,16 @@ export function UploadDialog({
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">
-                        Drag & drop your invoice, or{" "}
+                        {t("drag_and_drop")}{" "}
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           className="font-semibold text-blue-600 hover:text-blue-700"
                         >
-                          browse
+                          {t("browse")}
                         </button>
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        PDF, PNG, JPG up to 10MB
+                        {t("file_types")}
                       </p>
                     </div>
                   </div>
@@ -485,7 +487,7 @@ export function UploadDialog({
 
               <div className="mt-4 flex gap-3">
                 <button onClick={handleClose} className="btn-secondary flex-1">
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   onClick={handleUpload}
@@ -495,12 +497,12 @@ export function UploadDialog({
                   {uploading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
+                      {t("processing")}
                     </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4" />
-                      Upload & Analyze
+                      {t("upload_and_analyze")}
                     </>
                   )}
                 </button>
@@ -518,10 +520,10 @@ export function UploadDialog({
                 </div>
               </div>
               <p className="text-sm font-medium text-gray-600 mt-3">
-                AI is reading your invoice...
+                {t("ai_reading_invoice")}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                Extracting vendor, amount, and details
+                {t("extracting_details")}
               </p>
             </div>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   unpaid: {
@@ -42,7 +43,20 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const config = statusConfig[status] || statusConfig.unpaid;
+
+  const labelKeys: Record<string, string> = {
+    unpaid: "status_unpaid",
+    paid: "status_paid",
+    "possibly-paid": "status_possibly_paid",
+    overdue: "status_overdue",
+    duplicate: "status_duplicate",
+    reminder: "status_reminder",
+    "due-soon": "status_due_soon",
+    predicted: "status_predicted",
+    matched: "status_matched",
+  };
 
   return (
     <span
@@ -51,7 +65,7 @@ export function StatusBadge({ status }: { status: string }) {
         config.className
       )}
     >
-      {config.label}
+      {labelKeys[status] ? t(labelKeys[status] as any) : config.label}
     </span>
   );
 }

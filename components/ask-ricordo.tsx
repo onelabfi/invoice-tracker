@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   Brain,
   Send,
@@ -26,14 +27,16 @@ interface AskRicordoProps {
   onSelectInvoice?: (invoiceId: string) => void;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "Did I pay the electricity bill?",
-  "What bills are coming next?",
-  "Show unpaid invoices",
-  "How much did I spend this month?",
-];
-
 export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
+  const { t, locale } = useTranslation();
+
+  const SUGGESTED_QUESTIONS = [
+    t("suggested_q1"),
+    t("suggested_q2"),
+    t("suggested_q3"),
+    t("suggested_q4"),
+  ];
+
   const [query, setQuery] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +56,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ question: trimmed, locale }),
       });
 
       if (!res.ok) {
@@ -64,7 +67,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
       setResponse(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Something went wrong. Try again."
+        err instanceof Error ? err.message : t("something_went_wrong")
       );
     } finally {
       setIsLoading(false);
@@ -127,7 +130,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsExpanded(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Ricordo..."
+            placeholder={t("ask_ricordo")}
             disabled={isLoading}
             className="min-h-[44px] flex-1 bg-transparent text-gray-900 placeholder:text-gray-400 text-base outline-none disabled:opacity-60"
           />
@@ -165,7 +168,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                 <div className="flex items-center gap-1.5 mb-3">
                   <Sparkles className="h-3.5 w-3.5 text-teal-500" />
                   <span className="text-xs font-medium text-gray-500">
-                    Try asking
+                    {t("try_asking")}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -192,7 +195,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                 <div className="flex items-center gap-3 py-4">
                   <Loader2 className="h-5 w-5 text-teal-500 animate-spin flex-shrink-0" />
                   <span className="text-sm text-gray-500 font-medium">
-                    Ricordo is thinking...
+                    {t("ricordo_thinking")}
                   </span>
                 </div>
               </div>
@@ -225,7 +228,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                   response.relatedInvoices.length > 0 && (
                     <div className="pl-9">
                       <span className="text-xs font-medium text-gray-500 mb-2 block">
-                        Related invoices
+                        {t("related_invoices")}
                       </span>
                       <div className="flex flex-col gap-2">
                         {response.relatedInvoices.map((inv) => (
@@ -264,7 +267,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                     onClick={handleReset}
                     className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-teal-600 hover:bg-teal-50 active:scale-95 transition-all"
                   >
-                    Ask another question
+                    {t("ask_another")}
                   </button>
                 </div>
               </div>
@@ -281,7 +284,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                   onClick={handleReset}
                   className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-teal-600 hover:bg-teal-50 active:scale-95 transition-all"
                 >
-                  Try again
+                  {t("try_again")}
                 </button>
               </div>
             )}

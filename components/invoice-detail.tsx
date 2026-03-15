@@ -25,6 +25,7 @@ import {
   formatDate,
   formatRelativeDate,
 } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 interface InvoiceDetailProps {
   invoice: {
@@ -71,6 +72,7 @@ export function InvoiceDetail({
   onDelete,
   onRefresh,
 }: InvoiceDetailProps) {
+  const { t } = useTranslation();
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -171,17 +173,17 @@ export function InvoiceDetail({
             <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-semibold text-amber-900">
-                This is a reminder
+                {t("this_is_reminder")}
               </p>
               <p className="text-amber-700 mt-0.5">
-                Original invoice from {invoice.originalInvoice.vendor}
+                {t("original_invoice_from")} {invoice.originalInvoice.vendor}
                 {invoice.originalInvoice.invoiceNumber
                   ? ` (#${invoice.originalInvoice.invoiceNumber})`
                   : ""}
               </p>
               {invoice.reminderFee !== null && invoice.reminderFee > 0 && (
                 <p className="text-amber-800 font-medium mt-1">
-                  Includes {formatCurrency(invoice.reminderFee, invoice.currency)} reminder fee
+                  {t("includes_reminder_fee", { amount: formatCurrency(invoice.reminderFee, invoice.currency) })}
                 </p>
               )}
             </div>
@@ -193,7 +195,7 @@ export function InvoiceDetail({
           <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-orange-50 border border-orange-100 px-4 py-3 text-sm text-orange-800">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             <span className="font-medium">
-              {invoice.reminders.length} reminder{invoice.reminders.length !== 1 ? "s" : ""} received for this invoice
+              {invoice.reminders.length} {t("reminders_received")}
             </span>
           </div>
         )}
@@ -201,7 +203,7 @@ export function InvoiceDetail({
         {/* Details */}
         <div className="px-4 space-y-1">
           <DetailRow
-            label="Due date"
+            label={t("due_date")}
             icon={<Calendar className="h-4 w-4" />}
             value={
               invoice.dueDate ? (
@@ -216,19 +218,19 @@ export function InvoiceDetail({
           />
 
           <DetailRow
-            label="Invoice number"
+            label={t("invoice_number")}
             icon={<FileText className="h-4 w-4" />}
             value={invoice.invoiceNumber ? `#${invoice.invoiceNumber}` : null}
           />
 
           <DetailRow
-            label="Description"
+            label={t("description")}
             icon={<Info className="h-4 w-4" />}
             value={invoice.description}
           />
 
           <DetailRow
-            label="IBAN"
+            label={t("iban")}
             icon={<Banknote className="h-4 w-4" />}
             value={
               invoice.iban ? (
@@ -251,7 +253,7 @@ export function InvoiceDetail({
           />
 
           <DetailRow
-            label="Reference"
+            label={t("reference")}
             icon={<FileText className="h-4 w-4" />}
             value={
               invoice.reference ? (
@@ -281,7 +283,7 @@ export function InvoiceDetail({
               <div className="flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5" />
                 <span>
-                  Confidence:{" "}
+                  {t("confidence")}:{" "}
                   <span className="font-semibold text-gray-700">
                     {Math.round(invoice.confidence * 100)}%
                   </span>
@@ -290,7 +292,7 @@ export function InvoiceDetail({
             )}
             {invoice.source && (
               <span className="capitalize">
-                Source: {invoice.source}
+                {t("source")}: {invoice.source}
               </span>
             )}
             {invoice.fileName && (
@@ -300,7 +302,7 @@ export function InvoiceDetail({
             )}
           </div>
           <p className="text-[11px] text-gray-400 mt-2">
-            Added {formatDate(invoice.createdAt)}
+            {t("added")} {formatDate(invoice.createdAt)}
           </p>
         </div>
       </div>
@@ -310,13 +312,13 @@ export function InvoiceDetail({
         {syncing && (
           <div className="flex items-center justify-center gap-2 text-teal-600 text-sm font-medium py-2 mb-2">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            Checking for payment...
+            {t("checking_for_payment")}
           </div>
         )}
         {invoice.status === "paid" ? (
           <div className="flex items-center justify-center gap-2 text-emerald-600 font-medium py-2">
             <CheckCircle className="h-5 w-5" />
-            <span>Paid on {formatDate(invoice.paidAt)}</span>
+            <span>{t("paid_on")} {formatDate(invoice.paidAt)}</span>
           </div>
         ) : (
           <div className="flex gap-2">
@@ -325,14 +327,14 @@ export function InvoiceDetail({
               className="btn-primary flex-1 py-3 text-sm font-semibold"
             >
               <CreditCard className="h-4 w-4" />
-              Pay
+              {t("pay")}
             </button>
             <button
               onClick={() => onMarkPaid(invoice.id)}
               className="btn-success flex-1 py-3 text-sm font-semibold"
             >
               <CheckCircle className="h-4 w-4" />
-              Mark as Paid
+              {t("mark_as_paid")}
             </button>
             <button
               onClick={() => {}}
@@ -356,7 +358,7 @@ export function InvoiceDetail({
             {/* Overlay header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-2">
               <h2 className="text-lg font-bold text-gray-900">
-                Confirm payment
+                {t("confirm_payment")}
               </h2>
               <button
                 onClick={() => setShowPayConfirm(false)}
@@ -373,13 +375,14 @@ export function InvoiceDetail({
                 <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold text-red-900">
-                    Possible duplicate payment
+                    {t("possible_duplicate")}
                   </p>
                   <p className="text-red-700 mt-0.5">
-                    A similar payment of{" "}
-                    {formatCurrency(bestMatch.transaction.amount, invoice.currency)}{" "}
-                    to {bestMatch.transaction.merchant} was made on{" "}
-                    {formatDate(bestMatch.transaction.date)}.
+                    {t("similar_payment_warning", {
+                      amount: formatCurrency(bestMatch.transaction.amount, invoice.currency),
+                      merchant: bestMatch.transaction.merchant,
+                      date: formatDate(bestMatch.transaction.date),
+                    })}
                   </p>
                 </div>
               </div>
@@ -388,7 +391,7 @@ export function InvoiceDetail({
             {/* Payment details */}
             <div className="px-5 py-4 space-y-3">
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-500">To</span>
+                <span className="text-sm text-gray-500">{t("to")}</span>
                 <span className="text-sm font-semibold text-gray-900">
                   {invoice.vendor}
                 </span>
@@ -396,7 +399,7 @@ export function InvoiceDetail({
               <div className="border-t border-gray-100" />
 
               <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-500">Amount</span>
+                <span className="text-sm text-gray-500">{t("amount")}</span>
                 <span className="text-lg font-extrabold text-gray-900">
                   {formatCurrency(invoice.amount, invoice.currency)}
                 </span>
@@ -406,7 +409,7 @@ export function InvoiceDetail({
               {invoice.iban && (
                 <>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-500">IBAN</span>
+                    <span className="text-sm text-gray-500">{t("iban")}</span>
                     <span className="text-sm font-mono text-gray-900">
                       {invoice.iban}
                     </span>
@@ -417,7 +420,7 @@ export function InvoiceDetail({
 
               {invoice.reference && (
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-500">Reference</span>
+                  <span className="text-sm text-gray-500">{t("reference")}</span>
                   <span className="text-sm font-mono text-gray-900">
                     {invoice.reference}
                   </span>
@@ -431,14 +434,14 @@ export function InvoiceDetail({
                 onClick={() => setShowPayConfirm(false)}
                 className="btn-secondary flex-1 py-3 text-sm font-semibold"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 onClick={handleConfirmPay}
                 className="btn-primary flex-1 py-3 text-sm font-semibold"
               >
                 <CreditCard className="h-4 w-4" />
-                Confirm &amp; Pay
+                {t("confirm_and_pay")}
               </button>
             </div>
           </div>
@@ -466,6 +469,7 @@ function PaymentStatusIndicator({
     transaction: { merchant: string; amount: number; date: string };
   }[];
 }) {
+  const { t } = useTranslation();
   const bestMatch =
     matches && matches.length > 0
       ? matches.reduce((best, m) =>
@@ -479,12 +483,12 @@ function PaymentStatusIndicator({
         <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
         <div className="text-sm flex-1">
           <p className="font-semibold text-emerald-900">
-            Paid {paidAt ? formatDate(paidAt) : ""}
+            {t("paid_on")} {paidAt ? formatDate(paidAt) : ""}
           </p>
           {bestMatch && (
             <>
               <p className="text-emerald-700 mt-0.5">
-                Matched to bank transaction &middot;{" "}
+                {t("matched_to_bank")} &middot;{" "}
                 {bestMatch.transaction.merchant} on{" "}
                 {formatDate(bestMatch.transaction.date)}
               </p>
@@ -496,7 +500,7 @@ function PaymentStatusIndicator({
                   />
                 </div>
                 <span className="text-xs font-bold text-emerald-700">
-                  {Math.round(bestMatch.confidenceScore * 100)}% match
+                  {Math.round(bestMatch.confidenceScore * 100)}% {t("match_percent")}
                 </span>
               </div>
             </>
@@ -515,7 +519,7 @@ function PaymentStatusIndicator({
       <div className="flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
         <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
         <div className="text-sm flex-1">
-          <p className="font-semibold text-amber-900">Possibly paid</p>
+          <p className="font-semibold text-amber-900">{t("possibly_paid")}</p>
           <p className="text-amber-700 mt-0.5">
             {formatCurrency(bestMatch.transaction.amount, "EUR")} to{" "}
             {bestMatch.transaction.merchant} on{" "}
@@ -529,7 +533,7 @@ function PaymentStatusIndicator({
               />
             </div>
             <span className="text-xs font-bold text-amber-700">
-              {Math.round(bestMatch.confidenceScore * 100)}% match
+              {Math.round(bestMatch.confidenceScore * 100)}% {t("match_percent")}
             </span>
           </div>
         </div>
@@ -541,7 +545,7 @@ function PaymentStatusIndicator({
     return (
       <div className="flex items-center gap-3 rounded-xl bg-red-50 border border-red-100 px-4 py-3">
         <XCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-        <p className="text-sm font-semibold text-red-900">Not paid</p>
+        <p className="text-sm font-semibold text-red-900">{t("not_paid")}</p>
       </div>
     );
   }

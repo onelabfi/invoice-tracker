@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   Building2,
   Plus,
@@ -21,6 +22,7 @@ interface BankConnection {
 }
 
 export function BankConnections() {
+  const { t } = useTranslation();
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -91,10 +93,10 @@ export function BankConnections() {
     try {
       // Simulate sync (in production this would call Open Banking API)
       await new Promise((r) => setTimeout(r, 1500));
-      setSyncMessage("Transactions synced successfully.");
+      setSyncMessage(t("sync_success"));
       await fetchConnections();
     } catch {
-      setSyncMessage("Sync failed. Please try again.");
+      setSyncMessage(t("sync_failed"));
     } finally {
       setSyncing(false);
     }
@@ -176,7 +178,7 @@ export function BankConnections() {
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[48px]"
       >
         <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-        {syncing ? "Syncing..." : "Sync Transactions"}
+        {syncing ? t("syncing") : t("sync_transactions")}
       </button>
 
       {syncMessage && (
@@ -204,7 +206,7 @@ export function BankConnections() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
-                  <p className="text-xs text-gray-500">{conn.accountName || "Main account"}</p>
+                  <p className="text-xs text-gray-500">{conn.accountName || t("main_account")}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -212,14 +214,14 @@ export function BankConnections() {
                   {conn.status}
                 </span>
                 <p className="text-[10px] text-gray-400 mt-0.5">
-                  Last synced: {timeAgo(conn.lastSynced)}
+                  {t("last_synced")} {timeAgo(conn.lastSynced)}
                 </p>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-gray-400 text-center py-2">No banks connected yet.</p>
+        <p className="text-xs text-gray-400 text-center py-2">{t("no_banks_connected")}</p>
       )}
 
       {/* Add Bank */}
@@ -229,12 +231,12 @@ export function BankConnections() {
           className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors min-h-[48px]"
         >
           <Plus className="h-4 w-4" />
-          Add Bank Connection
+          {t("add_bank_connection")}
         </button>
       ) : (
         <form onSubmit={handleAddConnection} className="rounded-xl bg-gray-50 p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-900">New Connection</p>
+            <p className="text-sm font-semibold text-gray-900">{t("new_connection")}</p>
             <button type="button" onClick={() => setShowAddForm(false)} className="p-1 text-gray-400 hover:text-gray-600">
               <X className="h-4 w-4" />
             </button>
@@ -243,7 +245,7 @@ export function BankConnections() {
             type="text"
             value={bankName}
             onChange={(e) => setBankName(e.target.value)}
-            placeholder="Bank name"
+            placeholder={t("bank_name")}
             className="input-field"
             required
           />
@@ -251,7 +253,7 @@ export function BankConnections() {
             type="text"
             value={accountName}
             onChange={(e) => setAccountName(e.target.value)}
-            placeholder="Account name (optional)"
+            placeholder={t("account_name_optional")}
             className="input-field"
           />
           <button
@@ -260,7 +262,7 @@ export function BankConnections() {
             className="btn-primary w-full"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-            {submitting ? "Connecting..." : "Connect"}
+            {submitting ? t("connecting") : t("connect")}
           </button>
         </form>
       )}
@@ -268,10 +270,10 @@ export function BankConnections() {
       {/* Upload Bank Statement */}
       <div className="rounded-xl bg-gray-50 p-4">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          Upload Bank Statement
+          {t("upload_bank_statement")}
         </p>
         <p className="text-xs text-gray-400 mb-3">
-          CSV format: date, merchant, amount, reference, description
+          {t("csv_format_hint")}
         </p>
         <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 py-4 cursor-pointer hover:border-teal-300 transition-colors min-h-[48px]">
           {importing ? (
@@ -280,7 +282,7 @@ export function BankConnections() {
             <Upload className="h-4 w-4 text-gray-400" />
           )}
           <span className="text-sm text-gray-500">
-            {importing ? "Importing..." : "Choose CSV file"}
+            {importing ? t("importing") : t("choose_csv_file")}
           </span>
           <input
             ref={fileInputRef}
@@ -294,7 +296,7 @@ export function BankConnections() {
         {importedCount !== null && (
           <div className="flex items-center gap-2 mt-3 text-sm text-emerald-600">
             <CheckCircle className="h-4 w-4" />
-            {importedCount} transactions imported
+            {importedCount} {t("transactions_imported")}
           </div>
         )}
       </div>
@@ -302,10 +304,10 @@ export function BankConnections() {
       {/* Match Payments */}
       <div className="rounded-xl bg-gray-50 p-4">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          Match Payments
+          {t("match_payments")}
         </p>
         <p className="text-xs text-gray-400 mb-3">
-          AI matches bank transactions with your invoices
+          {t("match_payments_desc")}
         </p>
         <button
           onClick={handleRunMatching}
@@ -315,12 +317,12 @@ export function BankConnections() {
           {matching ? (
             <>
               <RefreshCw className="h-4 w-4 animate-spin" />
-              Matching...
+              {t("matching")}
             </>
           ) : (
             <>
               <Zap className="h-4 w-4" />
-              Match Payments
+              {t("match_payments")}
             </>
           )}
         </button>
@@ -328,18 +330,18 @@ export function BankConnections() {
           <div className="mt-3 space-y-1.5">
             <div className="flex items-center gap-2 text-sm text-emerald-600">
               <CheckCircle className="h-3.5 w-3.5" />
-              {matchResults.matchesFound} invoices matched
+              {matchResults.matchesFound} {t("invoices_matched")}
             </div>
             {matchResults.invoicesUpdated > 0 && (
               <div className="flex items-center gap-2 text-sm text-teal-600">
                 <CheckCircle className="h-3.5 w-3.5" />
-                {matchResults.invoicesUpdated} auto-marked as paid
+                {matchResults.invoicesUpdated} {t("auto_marked_paid")}
               </div>
             )}
             {matchResults.possibleMatches > 0 && (
               <div className="flex items-center gap-2 text-sm text-amber-600">
                 <RefreshCw className="h-3.5 w-3.5" />
-                {matchResults.possibleMatches} possibly matched
+                {matchResults.possibleMatches} {t("possibly_matched")}
               </div>
             )}
           </div>

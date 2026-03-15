@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Download, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface ExportDialogProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onClose }: ExportDialogProps) {
+  const { t } = useTranslation();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [status, setStatus] = useState("all");
@@ -54,13 +56,13 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-lg font-bold text-gray-900 mb-6">Export Invoices</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-6">{t("export_invoices")}</h2>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                From
+                {t("from")}
               </label>
               <input
                 type="date"
@@ -71,7 +73,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                To
+                {t("to")}
               </label>
               <input
                 type="date"
@@ -84,25 +86,25 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+              {t("status")}
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="input-field"
             >
-              <option value="all">All Statuses</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="paid">Paid</option>
-              <option value="overdue">Overdue</option>
-              <option value="duplicate">Duplicate</option>
+              <option value="all">{t("all_statuses")}</option>
+              <option value="unpaid">{t("filter_unpaid")}</option>
+              <option value="paid">{t("filter_paid")}</option>
+              <option value="overdue">{t("overdue")}</option>
+              <option value="duplicate">{t("duplicate")}</option>
             </select>
           </div>
         </div>
 
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="btn-secondary flex-1">
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={handleExport}
@@ -112,12 +114,12 @@ export function ExportDialog({ open, onClose }: ExportDialogProps) {
             {exporting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Exporting...
+                {t("exporting")}
               </>
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                Export CSV
+                {t("export_csv")}
               </>
             )}
           </button>

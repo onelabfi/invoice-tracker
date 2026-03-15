@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, Sparkles } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import { StatusBadge } from "./status-badge";
 import { formatCurrency, formatDate, formatRelativeDate } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ interface TimelineEntry {
 }
 
 export function Timeline() {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export function Timeline() {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
-        <p className="text-sm text-gray-500">Loading timeline...</p>
+        <p className="text-sm text-gray-500">{t("loading_timeline")}</p>
       </div>
     );
   }
@@ -53,9 +55,9 @@ export function Timeline() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 mb-4">
           <Sparkles className="h-8 w-8 text-purple-500" />
         </div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">No timeline data</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">{t("no_timeline_data")}</h3>
         <p className="text-sm text-gray-500 text-center">
-          Add more invoices and the AI will detect recurring bills and predict upcoming payments.
+          {t("no_timeline_desc")}
         </p>
       </div>
     );
@@ -71,8 +73,8 @@ export function Timeline() {
   });
 
   const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    t("month_january"), t("month_february"), t("month_march"), t("month_april"), t("month_may"), t("month_june"),
+    t("month_july"), t("month_august"), t("month_september"), t("month_october"), t("month_november"), t("month_december"),
   ];
 
   return (
@@ -159,7 +161,7 @@ export function Timeline() {
 
                         {entry.pattern && (
                           <p className="text-[11px] text-purple-500 mt-1 capitalize">
-                            {entry.pattern} pattern
+                            {entry.pattern} {t("pattern")}
                           </p>
                         )}
                       </div>

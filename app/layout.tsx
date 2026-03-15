@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { I18nProvider } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Ricordo — Your AI Payment Memory",
@@ -33,7 +34,9 @@ export default function RootLayout({
           {/* Notch */}
           <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[28px] bg-gray-200 rounded-b-2xl z-[60]" />
           <div className="relative min-h-screen md:min-h-[calc(100vh-2rem)]">
-            {children}
+            <I18nProvider>
+              {children}
+            </I18nProvider>
           </div>
         </div>
       </body>

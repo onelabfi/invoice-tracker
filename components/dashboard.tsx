@@ -25,6 +25,7 @@ import {
   Building2,
   Shield,
   Brain,
+  Globe,
 } from "lucide-react";
 import { InvoiceCard } from "./invoice-card";
 import { InvoiceDetail } from "./invoice-detail";
@@ -36,10 +37,10 @@ import { Notifications } from "./notifications";
 import { AskRicordo } from "./ask-ricordo";
 import {
   formatCurrency,
-  getGreeting,
   isDueSoon,
   isOverdue,
 } from "@/lib/utils";
+import { useTranslation, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 
 interface Invoice {
   id: string;
@@ -72,6 +73,7 @@ type TabId = "inbox" | "dashboard" | "timeline" | "settings";
 type FilterStatus = "all" | "unpaid" | "paid" | "due-soon" | "duplicate";
 
 export function Dashboard() {
+  const { t, locale, setLocale } = useTranslation();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -149,10 +151,10 @@ export function Dashboard() {
         setAuthenticated(true);
         sessionStorage.setItem("ricordo-auth", "true");
       } else {
-        setAuthError("Wrong password. Try again.");
+        setAuthError(t("login_error_wrong"));
       }
     } catch {
-      setAuthError("Connection error.");
+      setAuthError(t("login_error_connection"));
     }
   };
 
@@ -182,7 +184,7 @@ export function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this invoice?")) return;
+    if (!confirm(t("delete_invoice_confirm"))) return;
 
     try {
       const res = await fetch(`/api/invoices/${id}`, {
@@ -219,6 +221,13 @@ export function Dashboard() {
     }
   };
 
+  function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return t("greeting_morning");
+    if (hour < 18) return t("greeting_afternoon");
+    return t("greeting_evening");
+  }
+
   // -- Login Screen --
   if (!authenticated) {
     return (
@@ -230,10 +239,10 @@ export function Dashboard() {
                 <Brain className="h-8 w-8 text-white" />
               </div>
               <h1 className="text-2xl font-extrabold text-gray-900">
-                Ricordo
+                {t("app_name")}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Your AI payment memory
+                {t("app_tagline")}
               </p>
             </div>
 
@@ -244,7 +253,7 @@ export function Dashboard() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder={t("login_password_placeholder")}
                   className="input-field pl-11"
                   autoFocus
                 />
@@ -255,7 +264,7 @@ export function Dashboard() {
                 </p>
               )}
               <button type="submit" className="btn-primary w-full mt-4">
-                Log In
+                {t("login_button")}
               </button>
             </form>
           </div>
@@ -364,7 +373,7 @@ export function Dashboard() {
               <Brain className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-xl font-extrabold text-gray-900">
-              Ricordo
+              {t("app_name")}
             </h1>
           </div>
           <button
@@ -387,7 +396,7 @@ export function Dashboard() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search invoices..."
+            placeholder={t("search_invoices")}
             className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white focus:border-teal-500 border border-transparent transition-all"
           />
         </div>
@@ -399,21 +408,21 @@ export function Dashboard() {
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
           >
             <Camera className="h-4 w-4" />
-            Scan
+            {t("scan")}
           </button>
           <button
             onClick={() => openUpload("file")}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
           >
             <Upload className="h-4 w-4" />
-            Upload
+            {t("upload")}
           </button>
           <button
             onClick={() => openUpload("manual")}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
           >
             <Edit3 className="h-4 w-4" />
-            Manual
+            {t("manual")}
           </button>
         </div>
 
@@ -421,25 +430,25 @@ export function Dashboard() {
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {(
             [
-              { key: "all", label: "All", count: invoices.length },
+              { key: "all", label: t("filter_all"), count: invoices.length },
               {
                 key: "unpaid",
-                label: "Unpaid",
+                label: t("filter_unpaid"),
                 count: invoices.filter((i) => i.status === "unpaid").length,
               },
               {
                 key: "paid",
-                label: "Paid",
+                label: t("filter_paid"),
                 count: invoices.filter((i) => i.status === "paid").length,
               },
               {
                 key: "due-soon",
-                label: "Due Soon",
+                label: t("filter_due_soon"),
                 count: dueThisWeek.length + overdueInvoices.length,
               },
               {
                 key: "duplicate",
-                label: "Duplicates",
+                label: t("filter_duplicates"),
                 count: duplicates.length,
               },
             ] as { key: FilterStatus; label: string; count: number }[]
@@ -478,7 +487,7 @@ export function Dashboard() {
           <RefreshCw
             className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`}
           />
-          {refreshing ? "Refreshing..." : "Pull to refresh"}
+          {refreshing ? t("refreshing") : t("pull_to_refresh")}
         </button>
       </div>
 
@@ -487,7 +496,7 @@ export function Dashboard() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-teal-500 mb-3" />
-            <p className="text-sm text-gray-500">Loading invoices...</p>
+            <p className="text-sm text-gray-500">{t("loading_invoices")}</p>
           </div>
         ) : filteredInvoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -496,15 +505,16 @@ export function Dashboard() {
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-1">
               {filter === "all" && !searchQuery
-                ? "No invoices yet"
-                : "No results"}
+                ? t("no_invoices_yet")
+                : t("no_results")}
             </h3>
             <p className="text-sm text-gray-500 text-center mb-4">
               {filter === "all" && !searchQuery
-                ? "Upload your first invoice to get started."
-                : `No ${filter === "all" ? "" : filter} invoices found${
-                    searchQuery ? ` for "${searchQuery}"` : ""
-                  }.`}
+                ? t("upload_first_invoice")
+                : t("no_invoices_found", {
+                    filter: filter === "all" ? "" : filter,
+                    query: searchQuery ? ` "${searchQuery}"` : "",
+                  })}
             </p>
             {filter === "all" && !searchQuery && (
               <button
@@ -512,7 +522,7 @@ export function Dashboard() {
                 className="btn-primary"
               >
                 <Upload className="h-4 w-4" />
-                Upload Invoice
+                {t("upload_invoice")}
               </button>
             )}
           </div>
@@ -539,13 +549,13 @@ export function Dashboard() {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <Brain className="h-5 w-5 text-teal-600" />
-          <p className="text-xs font-bold text-teal-600 uppercase tracking-wider">Ricordo</p>
+          <p className="text-xs font-bold text-teal-600 uppercase tracking-wider">{t("app_name")}</p>
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900">
           {getGreeting()}
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Your AI payment memory
+          {t("app_tagline")}
         </p>
       </div>
 
@@ -567,14 +577,14 @@ export function Dashboard() {
               <Clock className="h-4 w-4 text-blue-600" />
             </div>
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Unpaid
+              {t("card_unpaid")}
             </span>
           </div>
           <p className="text-2xl font-extrabold text-gray-900">
             {formatCurrency(totalUnpaid)}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {unpaidInvoices.length} invoice{unpaidInvoices.length !== 1 ? "s" : ""}
+            {unpaidInvoices.length} {unpaidInvoices.length !== 1 ? t("invoices") : t("invoice")}
           </p>
         </div>
 
@@ -584,13 +594,13 @@ export function Dashboard() {
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             </div>
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Paid
+              {t("card_paid")}
             </span>
           </div>
           <p className="text-2xl font-extrabold text-gray-900">
             {paidThisMonth.length}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">This month</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t("this_month")}</p>
         </div>
 
         <div className="card p-4">
@@ -599,7 +609,7 @@ export function Dashboard() {
               <Shield className="h-4 w-4 text-orange-600" />
             </div>
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Duplicates
+              {t("card_duplicates")}
             </span>
           </div>
           <p className="text-2xl font-extrabold text-gray-900">
@@ -607,10 +617,10 @@ export function Dashboard() {
           </p>
           {savedByDuplicates > 0 ? (
             <p className="text-xs text-emerald-600 font-semibold mt-0.5">
-              {formatCurrency(savedByDuplicates)} saved
+              {formatCurrency(savedByDuplicates)} {t("saved")}
             </p>
           ) : (
-            <p className="text-xs text-gray-500 mt-0.5">prevented</p>
+            <p className="text-xs text-gray-500 mt-0.5">{t("prevented")}</p>
           )}
         </div>
 
@@ -620,13 +630,13 @@ export function Dashboard() {
               <TrendingUp className="h-4 w-4 text-teal-600" />
             </div>
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Fees Saved
+              {t("card_fees_saved")}
             </span>
           </div>
           <p className="text-2xl font-extrabold text-emerald-600">
             {formatCurrency(reminderFeesAvoided)}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">reminder fees</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t("reminder_fees")}</p>
         </div>
       </div>
 
@@ -635,7 +645,7 @@ export function Dashboard() {
         <div className="card p-4 mb-4 border-l-4 border-l-red-500">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-red-500" />
-            <span className="text-sm font-bold text-gray-900">Due Soon</span>
+            <span className="text-sm font-bold text-gray-900">{t("due_soon")}</span>
           </div>
           <div className="space-y-2">
             {dueThisWeek.slice(0, 3).map(inv => (
@@ -655,7 +665,7 @@ export function Dashboard() {
       {/* Monthly spending chart */}
       <div className="card p-4 mb-6">
         <h2 className="text-sm font-bold text-gray-900 mb-4">
-          Monthly Spending
+          {t("monthly_spending")}
         </h2>
         <div className="flex items-end gap-2 h-32">
           {monthlySpending.map((m) => (
@@ -686,18 +696,18 @@ export function Dashboard() {
       {/* Recent activity */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+          <h2 className="text-sm font-bold text-gray-900">{t("recent_activity")}</h2>
           <button
             onClick={() => setActiveTab("inbox")}
             className="text-xs font-medium text-teal-600 flex items-center gap-0.5"
           >
-            View all <ChevronRight className="h-3 w-3" />
+            {t("view_all")} <ChevronRight className="h-3 w-3" />
           </button>
         </div>
 
         {recentInvoices.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">
-            No activity yet
+            {t("no_activity_yet")}
           </p>
         ) : (
           <div className="space-y-3">
@@ -745,10 +755,10 @@ export function Dashboard() {
     <div className="safe-bottom pt-6">
       <div className="px-4 mb-4">
         <h1 className="text-xl font-extrabold text-gray-900">
-          Bill Timeline
+          {t("bill_timeline")}
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Past payments, upcoming bills & AI predictions
+          {t("timeline_subtitle")}
         </p>
       </div>
       <Timeline />
@@ -757,22 +767,22 @@ export function Dashboard() {
 
   const renderSettings = () => (
     <div className="safe-bottom px-4 pt-6 pb-4">
-      <h1 className="text-xl font-extrabold text-gray-900 mb-6">Settings</h1>
+      <h1 className="text-xl font-extrabold text-gray-900 mb-6">{t("settings")}</h1>
 
       {/* Account */}
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Account
+            {t("account")}
           </h2>
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-900">
-              Ricordo
+              {t("app_name")}
             </p>
             <p className="text-xs text-gray-500">
-              {invoices.length} invoices tracked
+              {invoices.length} {t("invoices_tracked")}
             </p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-teal-100 to-emerald-100">
@@ -785,7 +795,7 @@ export function Dashboard() {
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Bank Connections
+            {t("bank_connections")}
           </h2>
         </div>
         <button
@@ -795,11 +805,46 @@ export function Dashboard() {
         <BankConnections />
       </div>
 
+      {/* Language */}
+      <div className="card mb-4">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            {t("language")}
+          </h2>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          {SUPPORTED_LOCALES.map((loc) => (
+            <button
+              key={loc.code}
+              onClick={() => setLocale(loc.code)}
+              className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
+                locale === loc.code
+                  ? "bg-teal-50 border-2 border-teal-500"
+                  : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
+              }`}
+            >
+              <span className="text-lg">{loc.flag}</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{loc.label}</p>
+              </div>
+              {locale === loc.code && (
+                <div className="w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+              )}
+            </button>
+          ))}
+          <p className="text-xs text-gray-400 mt-2 px-1">
+            {t("language_helper")}
+          </p>
+        </div>
+      </div>
+
       {/* Data */}
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Data
+            {t("data")}
           </h2>
         </div>
         <button
@@ -809,7 +854,7 @@ export function Dashboard() {
           <div className="flex items-center gap-3">
             <Download className="h-5 w-5 text-gray-400" />
             <span className="text-sm font-medium text-gray-900">
-              Export Data (CSV)
+              {t("export_data_csv")}
             </span>
           </div>
           <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -820,14 +865,14 @@ export function Dashboard() {
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            AI Auto-Pay
+            {t("ai_auto_pay")}
           </h2>
         </div>
         <div className="px-4 py-3 flex items-center justify-between min-h-[52px]">
           <div>
-            <p className="text-sm font-medium text-gray-900">Enable Auto-Pay</p>
+            <p className="text-sm font-medium text-gray-900">{t("enable_auto_pay")}</p>
             <p className="text-xs text-gray-500">
-              AI prepares or executes payments
+              {t("auto_pay_desc")}
             </p>
           </div>
           <button
@@ -860,8 +905,8 @@ export function Dashboard() {
                 {autoPayMode === "approval" && <div className="w-2 h-2 rounded-full bg-teal-500" />}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Approval Mode</p>
-                <p className="text-xs text-gray-500">AI prepares, you approve</p>
+                <p className="text-sm font-medium text-gray-900">{t("approval_mode")}</p>
+                <p className="text-xs text-gray-500">{t("approval_mode_desc")}</p>
               </div>
             </button>
             <button
@@ -878,8 +923,8 @@ export function Dashboard() {
                 {autoPayMode === "auto" && <div className="w-2 h-2 rounded-full bg-teal-500" />}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Auto Mode</p>
-                <p className="text-xs text-gray-500">AI pays when confidence is very high</p>
+                <p className="text-sm font-medium text-gray-900">{t("auto_mode")}</p>
+                <p className="text-xs text-gray-500">{t("auto_mode_desc")}</p>
               </div>
             </button>
           </div>
@@ -890,20 +935,20 @@ export function Dashboard() {
       <div className="card mb-6">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            About
+            {t("about")}
           </h2>
         </div>
         <div className="px-4 py-3 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">App</span>
-            <span className="font-medium text-gray-900">Ricordo</span>
+            <span className="text-gray-500">{t("app")}</span>
+            <span className="font-medium text-gray-900">{t("app_name")}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Version</span>
+            <span className="text-gray-500">{t("version")}</span>
             <span className="font-medium text-gray-900">2.0.0</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Built with</span>
+            <span className="text-gray-500">{t("built_with")}</span>
             <span className="font-medium text-gray-900">Next.js + Claude AI</span>
           </div>
         </div>
@@ -915,7 +960,7 @@ export function Dashboard() {
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors min-h-[48px]"
       >
         <LogOut className="h-4 w-4" />
-        Log Out
+        {t("log_out")}
       </button>
     </div>
   );
@@ -939,25 +984,25 @@ export function Dashboard() {
               {
                 id: "inbox" as TabId,
                 icon: Inbox,
-                label: "Inbox",
+                label: t("tab_inbox"),
                 badge: unpaidInvoices.length,
               },
               {
                 id: "dashboard" as TabId,
                 icon: BarChart3,
-                label: "Dashboard",
+                label: t("tab_dashboard"),
                 badge: 0,
               },
               {
                 id: "timeline" as TabId,
                 icon: Calendar,
-                label: "Timeline",
+                label: t("tab_timeline"),
                 badge: 0,
               },
               {
                 id: "settings" as TabId,
                 icon: Settings,
-                label: "Settings",
+                label: t("tab_settings"),
                 badge: 0,
               },
             ] as const

@@ -4,13 +4,22 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT =
-  "You are Ricordo, an AI payment memory assistant. You help users track their invoices and bills. Answer questions about their financial data clearly and concisely. Always mention specific amounts, dates, and payment statuses. Format currency in EUR. Keep responses short — 2-3 sentences max. If you find related invoices, include their IDs in a JSON block at the end of your response like: [INVOICES: id1, id2]";
+const LOCALE_NAMES: Record<string, string> = {
+  en: "English",
+  fi: "Finnish",
+  sv: "Swedish",
+  de: "German",
+};
+
+function getSystemPrompt(locale: string): string {
+  const lang = LOCALE_NAMES[locale] || "English";
+  return `You are Ricordo, an AI payment memory assistant. You help users track their invoices and bills. Answer questions about their financial data clearly and concisely. Always mention specific amounts, dates, and payment statuses. Format currency in EUR. Keep responses short — 2-3 sentences max. If you find related invoices, include their IDs in a JSON block at the end of your response like: [INVOICES: id1, id2]. IMPORTANT: Always respond in ${lang}.`;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question } = body as { question: string };
+    const { question, locale } = body as { question: string; locale?: string };
 
     if (!question || typeof question !== "string") {
       return NextResponse.json(
@@ -82,7 +91,7 @@ USER QUESTION: ${question}`;
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: getSystemPrompt(locale || "en"),
       messages: [{ role: "user", content: userMessage }],
     });
 

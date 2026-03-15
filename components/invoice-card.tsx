@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   CheckCircle,
   Trash2,
@@ -64,6 +65,7 @@ export function InvoiceCard({
   onTap,
 }: InvoiceCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation();
 
   const displayStatus =
     invoice.status === "unpaid" && isOverdue(invoice.dueDate, invoice.status)
@@ -87,7 +89,7 @@ export function InvoiceCard({
         <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 text-sm text-amber-800 border-b border-amber-100">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span className="font-medium">
-            Reminder -- Original invoice may be paid
+            {t("reminder_warning")}
           </span>
         </div>
       )}
@@ -97,7 +99,7 @@ export function InvoiceCard({
         <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 text-sm text-orange-800 border-b border-orange-100">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span className="font-medium">
-            Possible duplicate detected
+            {t("duplicate_detected")}
           </span>
         </div>
       )}
@@ -145,7 +147,7 @@ export function InvoiceCard({
             <div className="flex items-center gap-1.5 mt-2 text-xs text-orange-700 bg-orange-50 rounded-lg px-2.5 py-1.5">
               <AlertTriangle className="h-3 w-3" />
               <span className="font-medium">
-                {invoice.reminders.length} reminder(s) received
+                {invoice.reminders.length} {t("reminders_received")}
               </span>
             </div>
           )}
@@ -158,12 +160,12 @@ export function InvoiceCard({
             {expanded ? (
               <>
                 <ChevronUp className="h-3.5 w-3.5" />
-                Less details
+                {t("less_details")}
               </>
             ) : (
               <>
                 <ChevronDown className="h-3.5 w-3.5" />
-                More details
+                {t("more_details")}
               </>
             )}
           </button>
@@ -176,7 +178,7 @@ export function InvoiceCard({
                 {invoice.description && (
                   <div className="text-sm">
                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                      Description
+                      {t("description")}
                     </span>
                     <p className="text-gray-900 mt-0.5">{invoice.description}</p>
                   </div>
@@ -185,7 +187,7 @@ export function InvoiceCard({
                 {invoice.dueDate && (
                   <div className="text-sm">
                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                      Due Date
+                      {t("due_date")}
                     </span>
                     <p className="text-gray-900 mt-0.5">
                       {formatDate(invoice.dueDate)}
@@ -196,7 +198,7 @@ export function InvoiceCard({
                 {invoice.paidAt && (
                   <div className="text-sm">
                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                      Paid Date
+                      {t("paid_date")}
                     </span>
                     <p className="text-emerald-700 font-medium mt-0.5">
                       {formatDate(invoice.paidAt)}
@@ -207,7 +209,7 @@ export function InvoiceCard({
                 {invoice.iban && (
                   <div className="text-sm">
                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                      IBAN
+                      {t("iban")}
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-gray-900 font-mono text-xs">
@@ -226,7 +228,7 @@ export function InvoiceCard({
                 {invoice.reference && (
                   <div className="text-sm">
                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">
-                      Reference
+                      {t("reference")}
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-gray-900 font-mono text-xs">
@@ -244,15 +246,15 @@ export function InvoiceCard({
 
                 <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-200">
                   {invoice.source && (
-                    <span className="capitalize">Source: {invoice.source}</span>
+                    <span className="capitalize">{t("source")}: {invoice.source}</span>
                   )}
                   {invoice.confidence !== null && invoice.confidence !== undefined && (
                     <span>
-                      Confidence: {Math.round(invoice.confidence * 100)}%
+                      {t("confidence")}: {Math.round(invoice.confidence * 100)}%
                     </span>
                   )}
                   {invoice.fileName && (
-                    <span className="truncate">File: {invoice.fileName}</span>
+                    <span className="truncate">{t("file")}: {invoice.fileName}</span>
                   )}
                 </div>
               </div>
@@ -271,14 +273,14 @@ export function InvoiceCard({
                       className="btn-primary flex-1 py-2.5 text-xs"
                     >
                       <CreditCard className="h-3.5 w-3.5" />
-                      Pay
+                      {t("pay")}
                     </button>
                     <button
                       onClick={() => onMarkPaid(invoice.id)}
                       className="btn-success flex-1 py-2.5 text-xs"
                     >
                       <CheckCircle className="h-3.5 w-3.5" />
-                      Mark Paid
+                      {t("mark_paid")}
                     </button>
                     <button
                       onClick={() => {}}
@@ -291,7 +293,7 @@ export function InvoiceCard({
                 {invoice.status === "paid" && (
                   <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium py-2">
                     <Banknote className="h-4 w-4" />
-                    Paid on {formatDate(invoice.paidAt)}
+                    {t("paid_on")} {formatDate(invoice.paidAt)}
                   </div>
                 )}
                 <button

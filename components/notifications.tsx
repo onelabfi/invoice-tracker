@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   X,
   Bell,
@@ -80,24 +81,25 @@ function timeAgo(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-function getActionButtons(actionType?: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getActionButtons(t: (key: any) => string, actionType?: string) {
   switch (actionType) {
     case "pay":
       return [
-        { label: "Pay now", icon: <CreditCard className="h-3.5 w-3.5" /> },
+        { label: t("pay_now"), icon: <CreditCard className="h-3.5 w-3.5" /> },
       ];
     case "confirm":
       return [
-        { label: "Mark paid", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+        { label: t("mark_paid"), icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
       ];
     case "remind":
       return [
-        { label: "Remind later", icon: <Clock className="h-3.5 w-3.5" /> },
+        { label: t("remind_later"), icon: <Clock className="h-3.5 w-3.5" /> },
       ];
     default:
       return [
-        { label: "Pay now", icon: <CreditCard className="h-3.5 w-3.5" /> },
-        { label: "Remind later", icon: <Clock className="h-3.5 w-3.5" /> },
+        { label: t("pay_now"), icon: <CreditCard className="h-3.5 w-3.5" /> },
+        { label: t("remind_later"), icon: <Clock className="h-3.5 w-3.5" /> },
       ];
   }
 }
@@ -107,6 +109,7 @@ export function Notifications({
   onClose,
   onAction,
 }: NotificationsProps) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -171,7 +174,7 @@ export function Notifications({
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-gray-700" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Notifications
+              {t("notifications")}
             </h2>
             {unreadCount > 0 && (
               <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 rounded-full bg-red-500 text-white text-xs font-medium">
@@ -186,7 +189,7 @@ export function Notifications({
                 className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <CheckCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">Mark all read</span>
+                <span className="hidden sm:inline">{t("mark_all_read")}</span>
               </button>
             )}
             <button
@@ -208,10 +211,10 @@ export function Notifications({
             <div className="flex flex-col items-center justify-center h-64 text-gray-400 px-4">
               <Inbox className="h-12 w-12 mb-3" />
               <p className="text-base font-medium text-gray-500">
-                All caught up!
+                {t("all_caught_up")}
               </p>
               <p className="text-sm text-gray-400 mt-1">
-                No new notifications.
+                {t("no_new_notifications")}
               </p>
             </div>
           ) : (
@@ -220,7 +223,7 @@ export function Notifications({
                 const colors =
                   typeColors[notification.type] || typeColors.info;
                 const icon = typeIcons[notification.type] || typeIcons.info;
-                const actions = getActionButtons(notification.actionType);
+                const actions = getActionButtons(t, notification.actionType);
 
                 return (
                   <li

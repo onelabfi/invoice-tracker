@@ -46,25 +46,32 @@ model Invoice {
 }
 
 model Transaction {
-  id            String   @id @default(cuid())
-  bankAccount   String?
-  merchant      String
-  amount        Float
-  reference     String?
-  description   String?
-  date          DateTime
-  rawData       String?
-  matches       Match[]
-  createdAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  bankAccount     String?
+  merchant        String
+  amount          Float
+  reference       String?
+  description     String?
+  date            DateTime
+  rawData         String?
+  connectionId    String?
+  matches         Match[]
+  createdAt       DateTime @default(now())
 }
 
 model BankConnection {
-  id            String   @id @default(cuid())
-  bankName      String
-  accountName   String?
-  status        String   @default("connected")
-  lastSynced    DateTime?
-  createdAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  bankName        String
+  accountName     String?
+  status          String   @default("connected") // connected, syncing, error, disconnected
+  provider        String   @default("manual")    // nordigen, plaid, csv, manual
+  country         String?
+  institutionId   String?
+  externalId      String?  // requisition_id (nordigen) or item_id (plaid)
+  accessToken     String?
+  accountExternalId String? // external account ID from provider
+  lastSynced      DateTime?
+  createdAt       DateTime @default(now())
 }
 
 model Notification {

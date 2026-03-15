@@ -11,35 +11,73 @@ import {
   CheckCircle,
   Loader2,
   X,
+  Search,
+  ChevronRight,
+  Globe,
+  ArrowLeft,
+  Shield,
 } from "lucide-react";
 
 interface BankConnection {
   id: string;
   bankName: string;
-  accountName: string;
+  accountName: string | null;
   status: string;
+  provider: string;
+  country: string | null;
   lastSynced: string | null;
 }
+
+interface Institution {
+  id: string;
+  name: string;
+  logo?: string;
+}
+
+const COUNTRIES = [
+  { code: "FI", name: "Finland", flag: "🇫🇮" },
+  { code: "SE", name: "Sweden", flag: "🇸🇪" },
+  { code: "NO", name: "Norway", flag: "🇳🇴" },
+  { code: "DK", name: "Denmark", flag: "🇩🇰" },
+  { code: "DE", name: "Germany", flag: "🇩🇪" },
+  { code: "FR", name: "France", flag: "🇫🇷" },
+  { code: "ES", name: "Spain", flag: "🇪🇸" },
+  { code: "IT", name: "Italy", flag: "🇮🇹" },
+  { code: "NL", name: "Netherlands", flag: "🇳🇱" },
+  { code: "US", name: "United States", flag: "🇺🇸" },
+];
+
+type WizardStep = "idle" | "country" | "bank" | "connecting" | "done";
 
 export function BankConnections() {
   const { t } = useTranslation();
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [bankName, setBankName] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState<WizardStep>("idle");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+  const [bankSearch, setBankSearch] = useState("");
+  const [selectedBank, setSelectedBank] = useState<Institution | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [isHolvi, setIsHolvi] = useState(false);
+
+  // CSV upload
   const [importedCount, setImportedCount] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync & Match
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [matching, setMatching] = useState(false);
   const [matchResults, setMatchResults] = useState<{
     matchesFound: number;
     invoicesUpdated: number;
     possibleMatches: number;
   } | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -59,49 +97,74 @@ export function BankConnections() {
     fetchConnections();
   }, [fetchConnections]);
 
-  async function handleAddConnection(e: React.FormEvent) {
-    e.preventDefault();
-    if (!bankName.trim()) return;
+  // Fetch institutions when country is selected
+  async function handleCountrySelect(countryCode: string) {
+    setSelectedCountry(countryCode);
+    setWizardStep("bank");
+    setLoadingBanks(true);
+    setInstitutions([]);
+    setBankSearch("");
+    setSelectedBank(null);
+    setIsHolvi(false);
 
-    setSubmitting(true);
     try {
-      const res = await fetch("/api/bank-connections", {
+      const res = await fetch(`/api/banks/institutions?country=${countryCode}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInstitutions(data.institutions || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch institutions:", err);
+    } finally {
+      setLoadingBanks(false);
+    }
+  }
+
+  // Connect to selected bank
+  async function handleConnect() {
+    if (!selectedBank || !selectedCountry) return;
+
+    const holviSelected = selectedBank.id.includes("holvi");
+    if (holviSelected) {
+      setIsHolvi(true);
+      return;
+    }
+
+    setConnecting(true);
+    setWizardStep("connecting");
+
+    try {
+      const provider = selectedCountry === "US" ? "plaid" : "nordigen";
+      const res = await fetch("/api/banks/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bankName: bankName.trim(),
-          accountName: accountName.trim() || null,
+          institutionId: selectedBank.id,
+          institutionName: selectedBank.name,
+          country: selectedCountry,
+          provider,
         }),
       });
 
       if (res.ok) {
-        setBankName("");
-        setAccountName("");
-        setShowAddForm(false);
+        const data = await res.json();
+
+        // If we got an auth URL, open it
+        if (data.authUrl) {
+          window.open(data.authUrl, "_blank");
+        }
+
+        setWizardStep("done");
         await fetchConnections();
       }
     } catch (err) {
-      console.error("Failed to add bank connection:", err);
+      console.error("Failed to connect bank:", err);
     } finally {
-      setSubmitting(false);
+      setConnecting(false);
     }
   }
 
-  async function handleSyncTransactions() {
-    setSyncing(true);
-    setSyncMessage(null);
-    try {
-      // Simulate sync (in production this would call Open Banking API)
-      await new Promise((r) => setTimeout(r, 1500));
-      setSyncMessage(t("sync_success"));
-      await fetchConnections();
-    } catch {
-      setSyncMessage(t("sync_failed"));
-    } finally {
-      setSyncing(false);
-    }
-  }
-
+  // CSV upload for Holvi
   async function handleCSVUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,9 +181,22 @@ export function BankConnections() {
         const [date, merchant, amount, reference, description] = line
           .split(",")
           .map((field) => field.trim().replace(/^"|"$/g, ""));
-
         return { date, merchant, amount: parseFloat(amount), reference, description };
       });
+
+      // Create the Holvi connection if not exists
+      if (isHolvi && selectedBank) {
+        await fetch("/api/banks/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            institutionId: selectedBank.id,
+            institutionName: "Holvi",
+            country: selectedCountry || "FI",
+            provider: "csv",
+          }),
+        });
+      }
 
       const res = await fetch("/api/transactions", {
         method: "POST",
@@ -131,6 +207,10 @@ export function BankConnections() {
       if (res.ok) {
         const data = await res.json();
         setImportedCount(data.count ?? transactions.length);
+        await fetchConnections();
+        if (isHolvi) {
+          setWizardStep("done");
+        }
       }
     } catch (err) {
       console.error("Failed to import transactions:", err);
@@ -140,10 +220,28 @@ export function BankConnections() {
     }
   }
 
+  async function handleSyncTransactions() {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/banks/sync", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setSyncMessage(data.message || t("sync_success"));
+        await fetchConnections();
+      } else {
+        setSyncMessage(t("sync_failed"));
+      }
+    } catch {
+      setSyncMessage(t("sync_failed"));
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleRunMatching() {
     setMatching(true);
     setMatchResults(null);
-
     try {
       const res = await fetch("/api/match", { method: "POST" });
       if (res.ok) {
@@ -157,8 +255,18 @@ export function BankConnections() {
     }
   }
 
+  function resetWizard() {
+    setWizardStep("idle");
+    setSelectedCountry(null);
+    setSelectedBank(null);
+    setInstitutions([]);
+    setBankSearch("");
+    setIsHolvi(false);
+    setImportedCount(null);
+  }
+
   function timeAgo(dateString: string | null): string {
-    if (!dateString) return "Never";
+    if (!dateString) return "—";
     const diff = Date.now() - new Date(dateString).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "Just now";
@@ -169,13 +277,202 @@ export function BankConnections() {
     return `${days}d ago`;
   }
 
+  const filteredInstitutions = bankSearch.trim()
+    ? institutions.filter((b) => b.name.toLowerCase().includes(bankSearch.toLowerCase()))
+    : institutions;
+
+  // -- WIZARD VIEWS --
+
+  // Step 1: Select Country
+  if (wizardStep === "country") {
+    return (
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <button onClick={resetWizard} className="p-1 text-gray-400 hover:text-gray-600">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-semibold text-gray-900">{t("bank_select_country")}</p>
+        </div>
+        <p className="text-xs text-gray-400 ml-6">{t("bank_country_hint")}</p>
+
+        <div className="space-y-1.5 mt-3">
+          {COUNTRIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => handleCountrySelect(c.code)}
+              className="w-full flex items-center gap-3 rounded-xl bg-gray-50 p-3 text-left hover:bg-teal-50 hover:ring-1 hover:ring-teal-200 transition-all min-h-[48px]"
+            >
+              <span className="text-lg">{c.flag}</span>
+              <span className="text-sm font-medium text-gray-900 flex-1">{c.name}</span>
+              <ChevronRight className="h-4 w-4 text-gray-300" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Select Bank
+  if (wizardStep === "bank") {
+    const countryObj = COUNTRIES.find((c) => c.code === selectedCountry);
+
+    return (
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <button onClick={() => setWizardStep("country")} className="p-1 text-gray-400 hover:text-gray-600">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <p className="text-sm font-semibold text-gray-900">
+            {countryObj?.flag} {t("bank_select_bank")}
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={bankSearch}
+            onChange={(e) => setBankSearch(e.target.value)}
+            placeholder={t("bank_search_placeholder")}
+            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 border border-transparent"
+            autoFocus
+          />
+        </div>
+
+        {/* Bank list */}
+        {loadingBanks ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {filteredInstitutions.map((bank) => {
+              const isSelected = selectedBank?.id === bank.id;
+              const isHolviBank = bank.id.includes("holvi");
+              return (
+                <button
+                  key={bank.id}
+                  onClick={() => setSelectedBank(bank)}
+                  className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all min-h-[48px] ${
+                    isSelected
+                      ? "bg-teal-50 ring-2 ring-teal-500"
+                      : "bg-gray-50 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-gray-200">
+                    <Building2 className="h-4 w-4 text-gray-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{bank.name}</p>
+                    {isHolviBank && (
+                      <p className="text-[10px] text-amber-600 font-medium">{t("bank_csv_fallback")}</p>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
+                      <CheckCircle className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+            {filteredInstitutions.length === 0 && !loadingBanks && (
+              <p className="text-xs text-gray-400 text-center py-4">{t("bank_no_results")}</p>
+            )}
+          </div>
+        )}
+
+        {/* Connect button */}
+        {selectedBank && (
+          <button
+            onClick={handleConnect}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition-colors min-h-[48px]"
+          >
+            <Shield className="h-4 w-4" />
+            {t("bank_connect_button")}
+          </button>
+        )}
+
+        {/* Holvi CSV fallback */}
+        {isHolvi && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3">
+            <p className="text-sm font-semibold text-amber-900">{t("bank_holvi_title")}</p>
+            <p className="text-xs text-amber-700">{t("bank_holvi_desc")}</p>
+            <p className="text-xs text-gray-400">{t("csv_format_hint")}</p>
+            <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-amber-300 py-4 cursor-pointer hover:border-amber-400 transition-colors min-h-[48px] bg-white">
+              {importing ? (
+                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+              ) : (
+                <Upload className="h-4 w-4 text-amber-500" />
+              )}
+              <span className="text-sm text-amber-700 font-medium">
+                {importing ? t("importing") : t("choose_csv_file")}
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="hidden"
+                disabled={importing}
+              />
+            </label>
+            {importedCount !== null && (
+              <div className="flex items-center gap-2 text-sm text-emerald-600">
+                <CheckCircle className="h-4 w-4" />
+                {importedCount} {t("transactions_imported")}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Step 3: Connecting
+  if (wizardStep === "connecting") {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center py-12">
+        <div className="relative mb-4">
+          <div className="h-16 w-16 rounded-full border-4 border-teal-200 animate-pulse" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
+          </div>
+        </div>
+        <p className="text-sm font-semibold text-gray-900">{t("bank_authenticating")}</p>
+        <p className="text-xs text-gray-500 mt-1 text-center">{t("bank_auth_desc")}</p>
+      </div>
+    );
+  }
+
+  // Done
+  if (wizardStep === "done") {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center py-8">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-4">
+          <CheckCircle className="h-8 w-8 text-emerald-600" />
+        </div>
+        <p className="text-base font-semibold text-gray-900">{t("bank_connected_title")}</p>
+        <p className="text-sm text-gray-500 mt-1">{t("bank_connected_desc")}</p>
+        <button
+          onClick={resetWizard}
+          className="mt-6 btn-primary px-8"
+        >
+          {t("done")}
+        </button>
+      </div>
+    );
+  }
+
+  // -- DEFAULT VIEW (idle) --
   return (
     <div className="space-y-4 p-4">
       {/* Sync Button */}
       <button
         onClick={handleSyncTransactions}
-        disabled={syncing}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[48px]"
+        disabled={syncing || connections.length === 0}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[48px] disabled:opacity-50"
       >
         <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
         {syncing ? t("syncing") : t("sync_transactions")}
@@ -206,7 +503,12 @@ export function BankConnections() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
-                  <p className="text-xs text-gray-500">{conn.accountName || t("main_account")}</p>
+                  <p className="text-xs text-gray-500">
+                    {conn.accountName || t("main_account")}
+                    {conn.provider && conn.provider !== "manual" && (
+                      <span className="ml-1.5 text-[10px] text-gray-400 uppercase">{conn.provider}</span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
@@ -224,50 +526,16 @@ export function BankConnections() {
         <p className="text-xs text-gray-400 text-center py-2">{t("no_banks_connected")}</p>
       )}
 
-      {/* Add Bank */}
-      {!showAddForm ? (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors min-h-[48px]"
-        >
-          <Plus className="h-4 w-4" />
-          {t("add_bank_connection")}
-        </button>
-      ) : (
-        <form onSubmit={handleAddConnection} className="rounded-xl bg-gray-50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-900">{t("new_connection")}</p>
-            <button type="button" onClick={() => setShowAddForm(false)} className="p-1 text-gray-400 hover:text-gray-600">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <input
-            type="text"
-            value={bankName}
-            onChange={(e) => setBankName(e.target.value)}
-            placeholder={t("bank_name")}
-            className="input-field"
-            required
-          />
-          <input
-            type="text"
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            placeholder={t("account_name_optional")}
-            className="input-field"
-          />
-          <button
-            type="submit"
-            disabled={submitting || !bankName.trim()}
-            className="btn-primary w-full"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-            {submitting ? t("connecting") : t("connect")}
-          </button>
-        </form>
-      )}
+      {/* Add Bank Connection */}
+      <button
+        onClick={() => setWizardStep("country")}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors min-h-[48px]"
+      >
+        <Plus className="h-4 w-4" />
+        {t("add_bank_connection")}
+      </button>
 
-      {/* Upload Bank Statement */}
+      {/* Upload Bank Statement (general CSV) */}
       <div className="rounded-xl bg-gray-50 p-4">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
           {t("upload_bank_statement")}

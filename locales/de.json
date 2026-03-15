@@ -222,5 +222,19 @@
   "month_september": "September",
   "month_october": "Oktober",
   "month_november": "November",
-  "month_december": "Dezember"
+  "month_december": "Dezember",
+
+  "bank_select_country": "Wählen Sie Ihr Land",
+  "bank_country_hint": "Wir zeigen Banken in Ihrer Region an",
+  "bank_select_bank": "Wählen Sie Ihre Bank",
+  "bank_search_placeholder": "Banken suchen...",
+  "bank_csv_fallback": "Nur CSV-Import",
+  "bank_no_results": "Keine Banken gefunden. Versuchen Sie eine andere Suche.",
+  "bank_connect_button": "Sicher verbinden",
+  "bank_holvi_title": "Holvi — CSV-Import",
+  "bank_holvi_desc": "Holvi unterstützt noch kein Open Banking. Exportieren Sie Ihre Transaktionen als CSV aus Holvi und laden Sie sie hier hoch.",
+  "bank_authenticating": "Authentifizierung...",
+  "bank_auth_desc": "Schließen Sie die Authentifizierung im gerade geöffneten Bankfenster ab.",
+  "bank_connected_title": "Bank verbunden!",
+  "bank_connected_desc": "Ihr Bankkonto ist jetzt verknüpft. Transaktionen werden automatisch synchronisiert."
 }

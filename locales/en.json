@@ -236,5 +236,7 @@
   "bank_authenticating": "Authenticating...",
   "bank_auth_desc": "Complete the authentication in the bank window that just opened.",
   "bank_connected_title": "Bank Connected!",
-  "bank_connected_desc": "Your bank account is now linked. Transactions will sync automatically."
+  "bank_connected_desc": "Your bank account is now linked. Transactions will sync automatically.",
+  "bank_iban_label": "IBAN / Account Number",
+  "bank_iban_hint": "Enter your IBAN to identify the account for transaction matching"
 }

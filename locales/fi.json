@@ -236,5 +236,7 @@
   "bank_authenticating": "Tunnistaudutaan...",
   "bank_auth_desc": "Suorita tunnistautuminen juuri avautuneessa pankin ikkunassa.",
   "bank_connected_title": "Pankki yhdistetty!",
-  "bank_connected_desc": "Pankkitilisi on nyt linkitetty. Tapahtumat synkronoidaan automaattisesti."
+  "bank_connected_desc": "Pankkitilisi on nyt linkitetty. Tapahtumat synkronoidaan automaattisesti.",
+  "bank_iban_label": "IBAN / Tilinumero",
+  "bank_iban_hint": "Syötä IBAN tunnistaaksesi tilin tapahtumien yhdistämistä varten"
 }

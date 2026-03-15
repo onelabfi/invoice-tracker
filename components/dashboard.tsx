@@ -24,7 +24,6 @@ import {
   Loader2,
   Building2,
   Shield,
-  Brain,
   Globe,
 } from "lucide-react";
 import { InvoiceCard } from "./invoice-card";
@@ -235,12 +234,7 @@ export function Dashboard() {
         <div className="w-full max-w-sm">
           <div className="card p-8">
             <div className="flex flex-col items-center mb-8">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 mb-4 shadow-lg shadow-teal-200/50">
-                <Brain className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-extrabold text-gray-900">
-                {t("app_name")}
-              </h1>
+              <img src="/ricordo-logo.png" alt="Ricordo" className="h-32 w-auto mb-2" />
               <p className="text-sm text-gray-500 mt-1">
                 {t("app_tagline")}
               </p>
@@ -369,12 +363,7 @@ export function Dashboard() {
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-lg border-b border-gray-100 px-4 pt-4 pb-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600">
-              <Brain className="h-4 w-4 text-white" />
-            </div>
-            <h1 className="text-xl font-extrabold text-gray-900">
-              {t("app_name")}
-            </h1>
+            <img src="/ricordo-logo1.png" alt="Ricordo" className="h-8 w-auto" />
           </div>
           <button
             onClick={() => setNotificationsOpen(true)}
@@ -548,8 +537,7 @@ export function Dashboard() {
       {/* Greeting */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <Brain className="h-5 w-5 text-teal-600" />
-          <p className="text-xs font-bold text-teal-600 uppercase tracking-wider">{t("app_name")}</p>
+          <img src="/ricordo-logo1.png" alt="Ricordo" className="h-6 w-auto" />
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900">
           {getGreeting()}
@@ -785,8 +773,8 @@ export function Dashboard() {
               {invoices.length} {t("invoices_tracked")}
             </p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-teal-100 to-emerald-100">
-            <Brain className="h-5 w-5 text-teal-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 overflow-hidden p-1.5">
+            <img src="/ricordo-logo.png" alt="Ricordo" className="h-full w-full object-contain" />
           </div>
         </div>
       </div>
@@ -812,28 +800,19 @@ export function Dashboard() {
             {t("language")}
           </h2>
         </div>
-        <div className="px-4 py-3 space-y-2">
-          {SUPPORTED_LOCALES.map((loc) => (
-            <button
-              key={loc.code}
-              onClick={() => setLocale(loc.code)}
-              className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                locale === loc.code
-                  ? "bg-teal-50 border-2 border-teal-500"
-                  : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
-              }`}
-            >
-              <span className="text-lg">{loc.flag}</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{loc.label}</p>
-              </div>
-              {locale === loc.code && (
-                <div className="w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </div>
-              )}
-            </button>
-          ))}
+        <div className="px-4 py-3">
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="w-full rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none cursor-pointer"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center' }}
+          >
+            {SUPPORTED_LOCALES.map((loc) => (
+              <option key={loc.code} value={loc.code}>
+                {loc.flag} {loc.label}
+              </option>
+            ))}
+          </select>
           <p className="text-xs text-gray-400 mt-2 px-1">
             {t("language_helper")}
           </p>

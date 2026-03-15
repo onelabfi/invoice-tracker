@@ -63,6 +63,7 @@ export function BankConnections() {
   const [selectedBank, setSelectedBank] = useState<Institution | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [isHolvi, setIsHolvi] = useState(false);
+  const [iban, setIban] = useState("");
 
   // CSV upload
   const [importedCount, setImportedCount] = useState<number | null>(null);
@@ -143,6 +144,7 @@ export function BankConnections() {
           institutionName: selectedBank.name,
           country: selectedCountry,
           provider,
+          iban: iban || undefined,
         }),
       });
 
@@ -262,6 +264,7 @@ export function BankConnections() {
     setInstitutions([]);
     setBankSearch("");
     setIsHolvi(false);
+    setIban("");
     setImportedCount(null);
   }
 
@@ -365,9 +368,6 @@ export function BankConnections() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{bank.name}</p>
-                    {isHolviBank && (
-                      <p className="text-[10px] text-amber-600 font-medium">{t("bank_csv_fallback")}</p>
-                    )}
                   </div>
                   {isSelected && (
                     <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
@@ -380,6 +380,21 @@ export function BankConnections() {
             {filteredInstitutions.length === 0 && !loadingBanks && (
               <p className="text-xs text-gray-400 text-center py-4">{t("bank_no_results")}</p>
             )}
+          </div>
+        )}
+
+        {/* IBAN / Account Number */}
+        {selectedBank && !selectedBank.id.includes("holvi") && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-gray-600 px-1">{t("bank_iban_label")}</label>
+            <input
+              type="text"
+              value={iban}
+              onChange={(e) => setIban(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              placeholder={selectedCountry === "US" ? "Account number" : "FI21 1234 5600 0007 85"}
+              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 border border-transparent font-mono tracking-wider"
+            />
+            <p className="text-[10px] text-gray-400 px-1">{t("bank_iban_hint")}</p>
           </div>
         )}
 

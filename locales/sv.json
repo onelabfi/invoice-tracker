@@ -236,5 +236,7 @@
   "bank_authenticating": "Autentiserar...",
   "bank_auth_desc": "Slutför autentiseringen i bankfönstret som just öppnades.",
   "bank_connected_title": "Bank ansluten!",
-  "bank_connected_desc": "Ditt bankkonto är nu kopplat. Transaktioner synkroniseras automatiskt."
+  "bank_connected_desc": "Ditt bankkonto är nu kopplat. Transaktioner synkroniseras automatiskt.",
+  "bank_iban_label": "IBAN / Kontonummer",
+  "bank_iban_hint": "Ange ditt IBAN för att identifiera kontot för transaktionsmatchning"
 }

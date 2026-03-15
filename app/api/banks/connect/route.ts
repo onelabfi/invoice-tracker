@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { institutionId, institutionName, country, provider } = body as {
+    const { institutionId, institutionName, country, provider, iban } = body as {
       institutionId: string;
       institutionName: string;
       country: string;
       provider: "nordigen" | "plaid" | "csv";
+      iban?: string;
     };
 
     if (!institutionName || !country) {
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
         const connection = await prisma.bankConnection.create({
           data: {
             bankName: institutionName,
+            accountName: iban || null,
             country,
             provider: "nordigen",
             institutionId,
@@ -149,7 +151,7 @@ export async function POST(request: NextRequest) {
     const connection = await prisma.bankConnection.create({
       data: {
         bankName: institutionName,
-        accountName: provider === "csv" ? "CSV Import" : null,
+        accountName: provider === "csv" ? "CSV Import" : iban || null,
         country,
         provider: provider || "manual",
         institutionId: institutionId || null,

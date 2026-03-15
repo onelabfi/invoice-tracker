@@ -236,5 +236,7 @@
   "bank_authenticating": "Authentifizierung...",
   "bank_auth_desc": "Schließen Sie die Authentifizierung im gerade geöffneten Bankfenster ab.",
   "bank_connected_title": "Bank verbunden!",
-  "bank_connected_desc": "Ihr Bankkonto ist jetzt verknüpft. Transaktionen werden automatisch synchronisiert."
+  "bank_connected_desc": "Ihr Bankkonto ist jetzt verknüpft. Transaktionen werden automatisch synchronisiert.",
+  "bank_iban_label": "IBAN / Kontonummer",
+  "bank_iban_hint": "Geben Sie Ihre IBAN ein, um das Konto für den Transaktionsabgleich zu identifizieren"
 }

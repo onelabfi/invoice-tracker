@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Invoice {
+  id                String    @id @default(cuid())
+  vendor            String
+  amount            Float
+  currency          String    @default("EUR")
+  invoiceNumber     String?
+  description       String?
+  dueDate           DateTime?
+  status            String    @default("pending") // pending, paid, overdue, duplicate
+  paidAt            DateTime?
+  isReminder        Boolean   @default(false)
+  originalInvoiceId String?
+  originalInvoice   Invoice?  @relation("ReminderOf", fields: [originalInvoiceId], references: [id])
+  reminders         Invoice[] @relation("ReminderOf")
+  fileName          String
+  fileUrl           String?
+  rawText           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}

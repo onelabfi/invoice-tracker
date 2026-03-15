@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+
+    const where: Record<string, unknown> = {};
+
+    if (status && status !== "all") {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { vendor: { contains: search, mode: "insensitive" } },
+        { invoiceNumber: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
     const invoices = await prisma.invoice.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         originalInvoice: {
@@ -15,11 +34,11 @@ export async function GET() {
       },
     });
 
-    // Auto-mark overdue invoices
+    // Auto-detect overdue invoices
     const now = new Date();
     const updated = invoices.map((inv) => {
       if (
-        inv.status === "pending" &&
+        inv.status === "unpaid" &&
         inv.dueDate &&
         new Date(inv.dueDate) < now
       ) {
@@ -45,17 +64,22 @@ export async function POST(request: NextRequest) {
     const invoice = await prisma.invoice.create({
       data: {
         vendor: data.vendor,
-        amount: data.amount,
+        amount: parseFloat(data.amount),
         currency: data.currency || "EUR",
         invoiceNumber: data.invoiceNumber || null,
         description: data.description || null,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        status: data.status || "pending",
+        iban: data.iban || null,
+        reference: data.reference || null,
+        status: data.status || "unpaid",
         isReminder: data.isReminder || false,
+        reminderFee: data.reminderFee ? parseFloat(data.reminderFee) : null,
         originalInvoiceId: data.originalInvoiceId || null,
-        fileName: data.fileName,
+        source: data.source || "manual",
+        fileName: data.fileName || null,
         fileUrl: data.fileUrl || null,
         rawText: data.rawText || null,
+        confidence: data.confidence || null,
       },
     });
 

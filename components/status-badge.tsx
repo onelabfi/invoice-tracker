@@ -3,31 +3,43 @@
 import { cn } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  pending: {
-    label: "Pending",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  unpaid: {
+    label: "Unpaid",
+    className: "bg-blue-500 text-white",
   },
   paid: {
     label: "Paid",
-    className: "bg-green-100 text-green-800 border-green-200",
+    className: "bg-emerald-500 text-white",
   },
   overdue: {
     label: "Overdue",
-    className: "bg-red-100 text-red-800 border-red-200",
+    className: "bg-red-500 text-white",
   },
   duplicate: {
-    label: "Duplicate / Reminder",
-    className: "bg-orange-100 text-orange-800 border-orange-200",
+    label: "Duplicate",
+    className: "bg-orange-500 text-white",
+  },
+  reminder: {
+    label: "Reminder",
+    className: "bg-amber-400 text-amber-900",
+  },
+  "due-soon": {
+    label: "Due Soon",
+    className: "border-2 border-red-400 text-red-600 bg-white",
+  },
+  predicted: {
+    label: "Expected",
+    className: "bg-purple-100 text-purple-700 border border-purple-200",
   },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = statusConfig[status] || statusConfig.unpaid;
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
         config.className
       )}
     >

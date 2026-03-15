@@ -17,10 +17,13 @@ export async function PATCH(
     }
 
     if (data.vendor !== undefined) updateData.vendor = data.vendor;
-    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.amount !== undefined) updateData.amount = parseFloat(data.amount);
+    if (data.currency !== undefined) updateData.currency = data.currency;
     if (data.invoiceNumber !== undefined) updateData.invoiceNumber = data.invoiceNumber;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+    if (data.iban !== undefined) updateData.iban = data.iban;
+    if (data.reference !== undefined) updateData.reference = data.reference;
 
     const invoice = await prisma.invoice.update({
       where: { id: params.id },
@@ -46,6 +49,11 @@ export async function DELETE(
     await prisma.invoice.updateMany({
       where: { originalInvoiceId: params.id },
       data: { originalInvoiceId: null },
+    });
+
+    // Delete any matches
+    await prisma.match.deleteMany({
+      where: { invoiceId: params.id },
     });
 
     await prisma.invoice.delete({

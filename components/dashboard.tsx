@@ -2,18 +2,37 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Plus,
-  FileText,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  AlertOctagon,
-  LogOut,
   Lock,
+  Bell,
+  Camera,
+  Upload,
+  Edit3,
+  Inbox,
+  BarChart3,
+  Calendar,
+  Settings,
+  LogOut,
+  FileText,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Download,
+  ChevronRight,
+  Search,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { InvoiceCard } from "./invoice-card";
 import { UploadDialog } from "./upload-dialog";
-import { formatCurrency } from "@/lib/utils";
+import { ExportDialog } from "./export-dialog";
+import { Timeline } from "./timeline";
+import {
+  formatCurrency,
+  getGreeting,
+  isDueSoon,
+  isOverdue,
+} from "@/lib/utils";
 
 interface Invoice {
   id: string;
@@ -23,27 +42,46 @@ interface Invoice {
   invoiceNumber: string | null;
   description: string | null;
   dueDate: string | null;
+  iban: string | null;
+  reference: string | null;
   status: string;
   paidAt: string | null;
   isReminder: boolean;
-  fileName: string;
+  reminderFee: number | null;
+  source: string;
+  fileName: string | null;
+  confidence: number | null;
   createdAt: string;
-  originalInvoice?: { id: string; vendor: string; invoiceNumber: string | null } | null;
+  originalInvoice?: {
+    id: string;
+    vendor: string;
+    invoiceNumber: string | null;
+  } | null;
   reminders?: { id: string; amount: number }[];
 }
 
-type FilterStatus = "all" | "pending" | "paid" | "overdue" | "duplicate";
+type TabId = "inbox" | "dashboard" | "timeline" | "settings";
+type FilterStatus = "all" | "unpaid" | "paid" | "due-soon" | "duplicate";
 
 export function Dashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("inbox");
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadInitialTab, setUploadInitialTab] = useState<
+    "camera" | "file" | "manual"
+  >("file");
+  const [exportOpen, setExportOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [autoPay, setAutoPay] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchInvoices = useCallback(async () => {
+  const fetchInvoices = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
       const res = await fetch("/api/invoices");
       if (res.ok) {
@@ -54,6 +92,7 @@ export function Dashboard() {
       console.error("Failed to fetch invoices:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -115,7 +154,7 @@ export function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this invoice?")) return;
+    if (!confirm("Delete this invoice?")) return;
 
     try {
       const res = await fetch(`/api/invoices/${id}`, {
@@ -130,40 +169,47 @@ export function Dashboard() {
     }
   };
 
-  // Login screen
+  const openUpload = (tab: "camera" | "file" | "manual") => {
+    setUploadInitialTab(tab);
+    setUploadOpen(true);
+  };
+
+  // -- Login Screen --
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-6">
         <div className="w-full max-w-sm">
-          <div className="rounded-xl bg-white p-8 shadow-lg">
-            <div className="flex flex-col items-center mb-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-3">
-                <Lock className="h-6 w-6 text-blue-600" />
+          <div className="card p-8">
+            <div className="flex flex-col items-center mb-8">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-200">
+                <FileText className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-2xl font-extrabold text-gray-900">
                 Invoice Tracker
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Enter household password
+                Enter your password to continue
               </p>
             </div>
 
             <form onSubmit={handleLogin}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                autoFocus
-              />
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="input-field pl-11"
+                  autoFocus
+                />
+              </div>
               {authError && (
-                <p className="mt-2 text-sm text-red-600">{authError}</p>
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  {authError}
+                </p>
               )}
-              <button
-                type="submit"
-                className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-              >
+              <button type="submit" className="btn-primary w-full mt-4">
                 Log In
               </button>
             </form>
@@ -173,154 +219,231 @@ export function Dashboard() {
     );
   }
 
-  // Compute stats
-  const stats = {
-    pending: invoices.filter((i) => i.status === "pending").length,
-    paid: invoices.filter((i) => i.status === "paid").length,
-    overdue: invoices.filter((i) => i.status === "overdue").length,
-    duplicates: invoices.filter((i) => i.status === "duplicate").length,
-    totalPending: invoices
-      .filter((i) => i.status === "pending" || i.status === "overdue")
-      .reduce((sum, i) => sum + i.amount, 0),
-    savedByDuplicateDetection: invoices
-      .filter((i) => i.status === "duplicate")
-      .reduce((sum, i) => sum + i.amount, 0),
-  };
+  // -- Compute stats --
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
 
-  const filteredInvoices =
-    filter === "all"
-      ? invoices
-      : invoices.filter((i) => i.status === filter);
+  const unpaidInvoices = invoices.filter(
+    (i) => i.status === "unpaid" || i.status === "overdue"
+  );
+  const paidThisMonth = invoices.filter((i) => {
+    if (i.status !== "paid" || !i.paidAt) return false;
+    const d = new Date(i.paidAt);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+  const dueThisWeek = invoices.filter(
+    (i) => (i.status === "unpaid" || i.status === "overdue") && isDueSoon(i.dueDate)
+  );
+  const overdueInvoices = invoices.filter(
+    (i) =>
+      (i.status === "unpaid" || i.status === "overdue") &&
+      isOverdue(i.dueDate, i.status)
+  );
+  const duplicates = invoices.filter((i) => i.status === "duplicate");
+  const totalUnpaid = unpaidInvoices.reduce((sum, i) => sum + i.amount, 0);
+  const savedByDuplicates = duplicates.reduce((sum, i) => sum + i.amount, 0);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FileText className="h-7 w-7 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">
-                Invoice Tracker
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setUploadOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Upload Invoice
-              </button>
-              <button
-                onClick={handleLogout}
-                className="rounded-lg border border-gray-300 p-2 text-gray-500 hover:bg-gray-50 transition-colors"
-                title="Log out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+  // Filter invoices for inbox
+  let filteredInvoices = invoices;
+  if (filter === "due-soon") {
+    filteredInvoices = invoices.filter(
+      (i) =>
+        (i.status === "unpaid" || i.status === "overdue") &&
+        (isDueSoon(i.dueDate) || isOverdue(i.dueDate, i.status))
+    );
+  } else if (filter !== "all") {
+    filteredInvoices = invoices.filter((i) => i.status === filter);
+  }
 
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-2 text-yellow-600 mb-1">
-              <Clock className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Pending</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatCurrency(stats.totalPending)} total
-            </p>
-          </div>
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filteredInvoices = filteredInvoices.filter(
+      (i) =>
+        i.vendor.toLowerCase().includes(q) ||
+        (i.invoiceNumber && i.invoiceNumber.toLowerCase().includes(q)) ||
+        (i.description && i.description.toLowerCase().includes(q))
+    );
+  }
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-2 text-green-600 mb-1">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Paid</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.paid}</p>
-          </div>
+  // Monthly spending for chart (last 6 months)
+  const monthlySpending: { month: string; amount: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(thisYear, thisMonth - i, 1);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const monthLabel = d.toLocaleString("en", { month: "short" });
+    const total = invoices
+      .filter((inv) => {
+        const created = new Date(inv.createdAt);
+        return created.getMonth() === m && created.getFullYear() === y;
+      })
+      .reduce((sum, inv) => sum + inv.amount, 0);
+    monthlySpending.push({ month: monthLabel, amount: total });
+  }
+  const maxSpending = Math.max(...monthlySpending.map((m) => m.amount), 1);
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-2 text-red-600 mb-1">
-              <AlertOctagon className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Overdue</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.overdue}</p>
-          </div>
+  // Recent activity for dashboard tab
+  const recentInvoices = invoices.slice(0, 5);
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-2 text-orange-600 mb-1">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Duplicates Caught</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.duplicates}</p>
-            {stats.savedByDuplicateDetection > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                {formatCurrency(stats.savedByDuplicateDetection)} saved
-              </p>
+  // -- Tab content renderers --
+
+  const renderInbox = () => (
+    <div className="safe-bottom">
+      {/* Top bar */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-lg border-b border-gray-100 px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-extrabold text-gray-900">
+            Invoice Inbox
+          </h1>
+          <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <Bell className="h-5 w-5 text-gray-600" />
+            {overdueInvoices.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {overdueInvoices.length}
+              </span>
             )}
-          </div>
+          </button>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-1 mb-4 rounded-lg bg-gray-100 p-1 overflow-x-auto">
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search invoices..."
+            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-500 border border-transparent transition-all"
+          />
+        </div>
+
+        {/* Quick actions */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => openUpload("camera")}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-100 transition-colors min-h-[44px]"
+          >
+            <Camera className="h-4 w-4" />
+            Scan
+          </button>
+          <button
+            onClick={() => openUpload("file")}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-100 transition-colors min-h-[44px]"
+          >
+            <Upload className="h-4 w-4" />
+            Upload
+          </button>
+          <button
+            onClick={() => openUpload("manual")}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-100 transition-colors min-h-[44px]"
+          >
+            <Edit3 className="h-4 w-4" />
+            Manual
+          </button>
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {(
             [
-              { key: "all", label: "All" },
-              { key: "pending", label: "Pending" },
-              { key: "paid", label: "Paid" },
-              { key: "overdue", label: "Overdue" },
-              { key: "duplicate", label: "Duplicates" },
-            ] as { key: FilterStatus; label: string }[]
-          ).map((tab) => (
+              { key: "all", label: "All", count: invoices.length },
+              {
+                key: "unpaid",
+                label: "Unpaid",
+                count: invoices.filter((i) => i.status === "unpaid").length,
+              },
+              {
+                key: "paid",
+                label: "Paid",
+                count: invoices.filter((i) => i.status === "paid").length,
+              },
+              {
+                key: "due-soon",
+                label: "Due Soon",
+                count: dueThisWeek.length + overdueInvoices.length,
+              },
+              {
+                key: "duplicate",
+                label: "Duplicates",
+                count: duplicates.length,
+              },
+            ] as { key: FilterStatus; label: string; count: number }[]
+          ).map((pill) => (
             <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                filter === tab.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+              key={pill.key}
+              onClick={() => setFilter(pill.key)}
+              className={`pill whitespace-nowrap min-h-[36px] ${
+                filter === pill.key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {tab.label}
+              {pill.label}
+              {pill.count > 0 && (
+                <span
+                  className={`ml-1.5 text-[10px] ${
+                    filter === pill.key ? "text-blue-200" : "text-gray-400"
+                  }`}
+                >
+                  {pill.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Invoice List */}
+      {/* Refresh button */}
+      <div className="flex justify-center py-2">
+        <button
+          onClick={() => fetchInvoices(true)}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 px-3"
+        >
+          <RefreshCw
+            className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`}
+          />
+          {refreshing ? "Refreshing..." : "Pull to refresh"}
+        </button>
+      </div>
+
+      {/* Invoice list */}
+      <div className="px-4">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-3" />
+            <p className="text-sm text-gray-500">Loading invoices...</p>
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white py-12 text-center">
-            <FileText className="mx-auto h-12 w-12 text-gray-300" />
-            <h3 className="mt-3 text-sm font-medium text-gray-900">
-              No invoices
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 mb-4">
+              <Inbox className="h-10 w-10 text-gray-300" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">
+              {filter === "all" && !searchQuery
+                ? "No invoices yet"
+                : "No results"}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {filter === "all"
+            <p className="text-sm text-gray-500 text-center mb-4">
+              {filter === "all" && !searchQuery
                 ? "Upload your first invoice to get started."
-                : `No ${filter} invoices found.`}
+                : `No ${filter === "all" ? "" : filter} invoices found${
+                    searchQuery ? ` for "${searchQuery}"` : ""
+                  }.`}
             </p>
-            {filter === "all" && (
+            {filter === "all" && !searchQuery && (
               <button
-                onClick={() => setUploadOpen(true)}
-                className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                onClick={() => openUpload("file")}
+                className="btn-primary"
               >
-                <Plus className="h-4 w-4" />
+                <Upload className="h-4 w-4" />
                 Upload Invoice
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 pb-4">
             {filteredInvoices.map((invoice) => (
               <InvoiceCard
                 key={invoice.id}
@@ -332,12 +455,388 @@ export function Dashboard() {
           </div>
         )}
       </div>
+    </div>
+  );
 
+  const renderDashboard = () => (
+    <div className="safe-bottom px-4 pt-6 pb-4">
+      {/* Greeting */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-gray-900">
+          {getGreeting()}
+        </h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Here&apos;s your invoice overview
+        </p>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+              <Clock className="h-4 w-4 text-blue-600" />
+            </div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Unpaid
+            </span>
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">
+            {formatCurrency(totalUnpaid)}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {unpaidInvoices.length} invoice{unpaidInvoices.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Paid
+            </span>
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">
+            {paidThisMonth.length}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">This month</p>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                dueThisWeek.length > 0 ? "bg-red-100" : "bg-gray-100"
+              }`}
+            >
+              <AlertTriangle
+                className={`h-4 w-4 ${
+                  dueThisWeek.length > 0 ? "text-red-600" : "text-gray-400"
+                }`}
+              />
+            </div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Due Soon
+            </span>
+          </div>
+          <p
+            className={`text-2xl font-extrabold ${
+              dueThisWeek.length > 0 ? "text-red-600" : "text-gray-900"
+            }`}
+          >
+            {dueThisWeek.length}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">This week</p>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
+              <TrendingUp className="h-4 w-4 text-orange-600" />
+            </div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Duplicates
+            </span>
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">
+            {duplicates.length}
+          </p>
+          {savedByDuplicates > 0 && (
+            <p className="text-xs text-emerald-600 font-semibold mt-0.5">
+              {formatCurrency(savedByDuplicates)} saved
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Monthly spending chart */}
+      <div className="card p-4 mb-6">
+        <h2 className="text-sm font-bold text-gray-900 mb-4">
+          Monthly Spending
+        </h2>
+        <div className="flex items-end gap-2 h-32">
+          {monthlySpending.map((m) => (
+            <div
+              key={m.month}
+              className="flex-1 flex flex-col items-center gap-1"
+            >
+              <span className="text-[10px] font-semibold text-gray-500">
+                {m.amount > 0 ? formatCurrency(m.amount) : ""}
+              </span>
+              <div
+                className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 min-h-[4px]"
+                style={{
+                  height: `${Math.max(
+                    (m.amount / maxSpending) * 100,
+                    4
+                  )}%`,
+                }}
+              />
+              <span className="text-[10px] font-medium text-gray-400">
+                {m.month}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+          <button
+            onClick={() => setActiveTab("inbox")}
+            className="text-xs font-medium text-blue-600 flex items-center gap-0.5"
+          >
+            View all <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+
+        {recentInvoices.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No activity yet
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {recentInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                      inv.status === "paid"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : inv.status === "overdue"
+                        ? "bg-red-100 text-red-700"
+                        : inv.status === "duplicate"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {inv.vendor.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {inv.vendor}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      {inv.status}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-gray-900 flex-shrink-0">
+                  {formatCurrency(inv.amount, inv.currency)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderTimeline = () => (
+    <div className="safe-bottom pt-6">
+      <div className="px-4 mb-4">
+        <h1 className="text-xl font-extrabold text-gray-900">
+          Bill Timeline
+        </h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          AI-predicted upcoming bills & payment history
+        </p>
+      </div>
+      <Timeline />
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="safe-bottom px-4 pt-6 pb-4">
+      <h1 className="text-xl font-extrabold text-gray-900 mb-6">Settings</h1>
+
+      {/* Account */}
+      <div className="card mb-4">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Account
+          </h2>
+        </div>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              Invoice Tracker
+            </p>
+            <p className="text-xs text-gray-500">
+              {invoices.length} invoices total
+            </p>
+          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+            <FileText className="h-5 w-5 text-blue-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Data */}
+      <div className="card mb-4">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Data
+          </h2>
+        </div>
+        <button
+          onClick={() => setExportOpen(true)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors min-h-[52px]"
+        >
+          <div className="flex items-center gap-3">
+            <Download className="h-5 w-5 text-gray-400" />
+            <span className="text-sm font-medium text-gray-900">
+              Export Data (CSV)
+            </span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-gray-400" />
+        </button>
+      </div>
+
+      {/* Preferences */}
+      <div className="card mb-4">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Preferences
+          </h2>
+        </div>
+        <div className="px-4 py-3 flex items-center justify-between min-h-[52px]">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Auto-pay</p>
+            <p className="text-xs text-gray-500">
+              Automatically pay invoices on due date
+            </p>
+          </div>
+          <button
+            onClick={() => setAutoPay(!autoPay)}
+            className={`relative h-7 w-12 rounded-full transition-colors ${
+              autoPay ? "bg-blue-600" : "bg-gray-300"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                autoPay ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* About */}
+      <div className="card mb-6">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            About
+          </h2>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Version</span>
+            <span className="font-medium text-gray-900">2.0.0</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Built with</span>
+            <span className="font-medium text-gray-900">Next.js + AI</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors min-h-[48px]"
+      >
+        <LogOut className="h-4 w-4" />
+        Log Out
+      </button>
+    </div>
+  );
+
+  // -- Main layout --
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Tab content */}
+      <div className="pb-20">
+        {activeTab === "inbox" && renderInbox()}
+        {activeTab === "dashboard" && renderDashboard()}
+        {activeTab === "timeline" && renderTimeline()}
+        {activeTab === "settings" && renderSettings()}
+      </div>
+
+      {/* Bottom navigation */}
+      <nav className="bottom-nav">
+        <div className="flex items-center justify-around px-2 pt-2 pb-2">
+          {(
+            [
+              {
+                id: "inbox" as TabId,
+                icon: Inbox,
+                label: "Inbox",
+                badge: unpaidInvoices.length,
+              },
+              {
+                id: "dashboard" as TabId,
+                icon: BarChart3,
+                label: "Dashboard",
+                badge: 0,
+              },
+              {
+                id: "timeline" as TabId,
+                icon: Calendar,
+                label: "Timeline",
+                badge: 0,
+              },
+              {
+                id: "settings" as TabId,
+                icon: Settings,
+                label: "Settings",
+                badge: 0,
+              },
+            ] as const
+          ).map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`relative flex flex-col items-center gap-0.5 py-1 px-3 min-h-[44px] min-w-[64px] transition-colors ${
+                  isActive ? "tab-active" : "tab-inactive"
+                }`}
+              >
+                <div className="relative">
+                  <Icon className="h-5 w-5" />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold">{item.label}</span>
+                {isActive && (
+                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-blue-600" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Dialogs */}
       <UploadDialog
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
-        onUploaded={fetchInvoices}
+        onUploaded={() => fetchInvoices()}
+        initialTab={uploadInitialTab}
       />
+      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }

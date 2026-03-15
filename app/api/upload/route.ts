@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const source = (formData.get("source") as string) || "upload";
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -31,15 +32,15 @@ export async function POST(request: NextRequest) {
     if (file.type.startsWith("image/")) {
       fileContent = buffer.toString("base64");
       mimeType = file.type;
+    } else if (file.type === "application/pdf") {
+      // For PDFs, extract readable text
+      fileContent =
+        `[PDF file: ${file.name}. Raw content may contain binary data. Please extract any readable text and invoice information from the following content.]\n\n` +
+        buffer
+          .toString("latin1")
+          .replace(/[^\x20-\x7E\n\r\t]/g, " ");
     } else {
-      // For PDFs and text, send as text (basic extraction)
-      // For real PDF parsing you'd use a library like pdf-parse
       fileContent = buffer.toString("utf-8");
-      // If it looks like binary (PDF), send base64 as image won't work,
-      // so we tell Claude it's a PDF and include what we can
-      if (file.type === "application/pdf") {
-        fileContent = `[PDF file: ${file.name}. Raw content may contain binary data. Please extract any readable text and invoice information from the following content.]\n\n` + buffer.toString("latin1").replace(/[^\x20-\x7E\n\r\t]/g, " ");
-      }
     }
 
     // Extract invoice data using Claude
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Check for duplicates against existing invoices
     const existingInvoices = await prisma.invoice.findMany({
       where: {
-        status: { in: ["pending", "overdue", "paid"] },
+        status: { in: ["unpaid", "overdue", "paid"] },
       },
       select: {
         id: true,
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Determine status
-    let status = "pending";
+    let status = "unpaid";
     if (duplicateCheck.isDuplicate || duplicateCheck.isReminder) {
       status = "duplicate";
     }
@@ -84,12 +85,16 @@ export async function POST(request: NextRequest) {
         invoiceNumber: extracted.invoiceNumber,
         description: extracted.description,
         dueDate: extracted.dueDate ? new Date(extracted.dueDate) : null,
+        iban: extracted.iban,
+        reference: extracted.reference,
         status,
         isReminder: duplicateCheck.isReminder,
         originalInvoiceId: duplicateCheck.originalInvoiceId,
+        source,
         fileName: file.name,
         fileUrl: `/uploads/${uniqueName}`,
         rawText: fileContent.substring(0, 10000),
+        confidence: extracted.confidence,
       },
     });
 

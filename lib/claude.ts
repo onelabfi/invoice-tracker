@@ -11,6 +11,9 @@ export interface ExtractedInvoice {
   invoiceNumber: string | null;
   dueDate: string | null;
   description: string | null;
+  iban: string | null;
+  reference: string | null;
+  confidence: number;
 }
 
 export interface DuplicateCheck {
@@ -29,6 +32,14 @@ interface ExistingInvoice {
   invoiceNumber: string | null;
   description: string | null;
   dueDate: string | null;
+}
+
+export interface BillPrediction {
+  vendor: string;
+  expectedAmount: number;
+  expectedDate: string;
+  confidence: number;
+  pattern: string;
 }
 
 export async function extractInvoiceData(
@@ -56,8 +67,13 @@ export async function extractInvoiceData(
   "currency": "EUR",
   "invoiceNumber": "INV-001 or null",
   "dueDate": "YYYY-MM-DD or null",
-  "description": "brief description of what this invoice is for"
-}`,
+  "description": "brief description of what this invoice is for",
+  "iban": "bank IBAN or null",
+  "reference": "payment reference or null",
+  "confidence": 0.95
+}
+
+The confidence score should reflect how certain you are about the extracted data overall (0.0 to 1.0).`,
     });
   } else {
     contentBlocks.push({
@@ -75,8 +91,13 @@ ${fileContent}
   "currency": "EUR",
   "invoiceNumber": "INV-001 or null",
   "dueDate": "YYYY-MM-DD or null",
-  "description": "brief description of what this invoice is for"
-}`,
+  "description": "brief description of what this invoice is for",
+  "iban": "bank IBAN or null",
+  "reference": "payment reference or null",
+  "confidence": 0.95
+}
+
+The confidence score should reflect how certain you are about the extracted data overall (0.0 to 1.0).`,
     });
   }
 
@@ -108,6 +129,9 @@ ${fileContent}
     invoiceNumber: parsed.invoiceNumber || null,
     dueDate: parsed.dueDate || null,
     description: parsed.description || null,
+    iban: parsed.iban || null,
+    reference: parsed.reference || null,
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
   };
 }
 
@@ -182,4 +206,69 @@ Return ONLY valid JSON:
     confidence: parsed.confidence || 0,
     reason: parsed.reason || "",
   };
+}
+
+export async function predictRecurringBills(
+  invoices: Array<{
+    vendor: string;
+    amount: number;
+    currency: string;
+    dueDate: string | null;
+    createdAt: string;
+    status: string;
+  }>
+): Promise<BillPrediction[]> {
+  if (invoices.length < 2) {
+    return [];
+  }
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `Analyze these historical invoices and predict upcoming recurring bills.
+
+Historical invoices:
+${JSON.stringify(invoices, null, 2)}
+
+Group by vendor and look for patterns:
+- Monthly bills (similar vendor, regular ~30 day intervals)
+- Quarterly bills (~90 day intervals)
+- Annual bills (~365 day intervals)
+- Similar amounts from the same vendor
+
+For each detected pattern, predict the next expected bill.
+
+Return ONLY a valid JSON array:
+[
+  {
+    "vendor": "Company Name",
+    "expectedAmount": 123.45,
+    "expectedDate": "YYYY-MM-DD",
+    "confidence": 0.8,
+    "pattern": "monthly" or "quarterly" or "annual" or "irregular"
+  }
+]
+
+If no patterns are detected, return an empty array [].`,
+      },
+    ],
+  });
+
+  const text =
+    response.content[0].type === "text" ? response.content[0].text : "";
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }

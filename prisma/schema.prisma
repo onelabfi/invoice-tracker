@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("owner") // owner, employee, accountant
+  createdAt DateTime @default(now())
+  invoices  Invoice[]
+}
+
 model Invoice {
   id                String    @id @default(cuid())
   vendor            String
@@ -15,15 +24,48 @@ model Invoice {
   invoiceNumber     String?
   description       String?
   dueDate           DateTime?
-  status            String    @default("pending") // pending, paid, overdue, duplicate
+  iban              String?
+  reference         String?
+  status            String    @default("unpaid") // unpaid, paid, overdue, duplicate, reminder
   paidAt            DateTime?
   isReminder        Boolean   @default(false)
+  reminderFee       Float?
   originalInvoiceId String?
   originalInvoice   Invoice?  @relation("ReminderOf", fields: [originalInvoiceId], references: [id])
   reminders         Invoice[] @relation("ReminderOf")
-  fileName          String
+  source            String    @default("upload") // upload, camera, email, manual
+  fileName          String?
   fileUrl           String?
   rawText           String?
+  confidence        Float?
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id])
+  matches           Match[]
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  bankAccount   String?
+  merchant      String
+  amount        Float
+  reference     String?
+  date          DateTime
+  rawData       String?
+  matches       Match[]
+  createdAt     DateTime @default(now())
+}
+
+model Match {
+  id              String      @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  transactionId   String
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  confidenceScore Float
+  matchType       String      // reference, amount, merchant, combined
+  createdAt       DateTime    @default(now())
+
+  @@unique([invoiceId, transactionId])
 }

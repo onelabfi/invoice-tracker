@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import {
   Building2,
@@ -82,12 +83,34 @@ export function BankConnections() {
     possibleMatches: number;
   } | null>(null);
 
+  const searchParams = useSearchParams();
+
+  // Detect GoCardless callback redirect (?bank_connected=1) and refresh list
+  useEffect(() => {
+    if (searchParams.get("bank_connected") === "1") {
+      setSyncMessage("Bank account connected successfully!");
+      fetchConnections();
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (searchParams.get("bank_error")) {
+      const errCode = searchParams.get("bank_error");
+      setSyncMessage(`Bank connection error: ${errCode}`);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const fetchConnections = useCallback(async () => {
     try {
       const res = await fetch("/api/bank-connections");
       if (res.ok) {
         const data = await res.json();
-        setConnections(data);
+        // Extra client-side guard: Nordigen connections must have an IBAN
+        const real = (data as BankConnection[]).filter(
+          (c) => c.provider !== "nordigen" || !!c.accountName
+        );
+        setConnections(real);
       }
     } catch (err) {
       console.error("Failed to fetch bank connections:", err);
@@ -520,12 +543,17 @@ export function BankConnections() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
-                  <p className="text-xs text-gray-500">
-                    {conn.accountName || t("main_account")}
-                    {conn.provider && conn.provider !== "manual" && (
-                      <span className="ml-1.5 text-[10px] text-gray-400 uppercase">{conn.provider}</span>
-                    )}
-                  </p>
+                  {conn.accountName ? (
+                    <p className="text-xs text-gray-500 font-mono tracking-wider">
+                      {/* Show IBAN in groups of 4 for readability */}
+                      {conn.accountName.replace(/(.{4})/g, "$1 ").trim()}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">{t("main_account")}</p>
+                  )}
+                  {conn.provider && conn.provider !== "manual" && (
+                    <span className="text-[10px] text-gray-400 uppercase">{conn.provider}</span>
+                  )}
                 </div>
               </div>
               <div className="text-right">

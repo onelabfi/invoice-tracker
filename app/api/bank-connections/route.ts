@@ -3,7 +3,25 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    /**
+     * Only return connections that are genuinely usable:
+     *  - status = "connected"  (not pending/error/disconnected)
+     *  - Nordigen: must have accountName (IBAN/BBAN) AND accountExternalId
+     *    so we never surface dummy/pending requisitions in the UI
+     *  - CSV / manual / plaid: always show when connected
+     */
     const connections = await prisma.bankConnection.findMany({
+      where: {
+        status: "connected",
+        OR: [
+          { provider: { in: ["csv", "manual", "plaid"] } },
+          {
+            provider: "nordigen",
+            accountName:       { not: null },
+            accountExternalId: { not: null },
+          },
+        ],
+      },
       orderBy: { createdAt: "desc" },
     });
 

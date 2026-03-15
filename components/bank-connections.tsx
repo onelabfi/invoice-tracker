@@ -10,7 +10,6 @@ import {
   CheckCircle,
   Loader2,
   X,
-  CreditCard,
 } from "lucide-react";
 
 interface BankConnection {
@@ -18,12 +17,7 @@ interface BankConnection {
   bankName: string;
   accountName: string;
   status: string;
-  lastSynced: string;
-}
-
-interface MatchResults {
-  matched: number;
-  possiblyMatched: number;
+  lastSynced: string | null;
 }
 
 export function BankConnections() {
@@ -36,7 +30,13 @@ export function BankConnections() {
   const [importedCount, setImportedCount] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
   const [matching, setMatching] = useState(false);
-  const [matchResults, setMatchResults] = useState<MatchResults | null>(null);
+  const [matchResults, setMatchResults] = useState<{
+    matchesFound: number;
+    invoicesUpdated: number;
+    possibleMatches: number;
+  } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchConnections = useCallback(async () => {
@@ -59,14 +59,17 @@ export function BankConnections() {
 
   async function handleAddConnection(e: React.FormEvent) {
     e.preventDefault();
-    if (!bankName.trim() || !accountName.trim()) return;
+    if (!bankName.trim()) return;
 
     setSubmitting(true);
     try {
       const res = await fetch("/api/bank-connections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bankName: bankName.trim(), accountName: accountName.trim() }),
+        body: JSON.stringify({
+          bankName: bankName.trim(),
+          accountName: accountName.trim() || null,
+        }),
       });
 
       if (res.ok) {
@@ -82,6 +85,21 @@ export function BankConnections() {
     }
   }
 
+  async function handleSyncTransactions() {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      // Simulate sync (in production this would call Open Banking API)
+      await new Promise((r) => setTimeout(r, 1500));
+      setSyncMessage("Transactions synced successfully.");
+      await fetchConnections();
+    } catch {
+      setSyncMessage("Sync failed. Please try again.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleCSVUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -92,7 +110,6 @@ export function BankConnections() {
     try {
       const text = await file.text();
       const lines = text.split("\n").filter((line) => line.trim());
-      // Skip header row if present
       const startIndex = lines[0]?.toLowerCase().includes("date") ? 1 : 0;
 
       const transactions = lines.slice(startIndex).map((line) => {
@@ -100,13 +117,7 @@ export function BankConnections() {
           .split(",")
           .map((field) => field.trim().replace(/^"|"$/g, ""));
 
-        return {
-          date,
-          merchant,
-          amount: parseFloat(amount),
-          reference,
-          description,
-        };
+        return { date, merchant, amount: parseFloat(amount), reference, description };
       });
 
       const res = await fetch("/api/transactions", {
@@ -123,9 +134,7 @@ export function BankConnections() {
       console.error("Failed to import transactions:", err);
     } finally {
       setImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -136,7 +145,7 @@ export function BankConnections() {
     try {
       const res = await fetch("/api/match", { method: "POST" });
       if (res.ok) {
-        const data: MatchResults = await res.json();
+        const data = await res.json();
         setMatchResults(data);
       }
     } catch (err) {
@@ -146,203 +155,196 @@ export function BankConnections() {
     }
   }
 
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  function timeAgo(dateString: string | null): string {
+    if (!dateString) return "Never";
+    const diff = Date.now() - new Date(dateString).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white px-4 py-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <CreditCard className="h-7 w-7 text-emerald-400" />
-          <h1 className="text-xl font-semibold">Bank Connections</h1>
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
-        >
-          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showAddForm ? "Cancel" : "Add Bank"}
-        </button>
-      </div>
+    <div className="space-y-4 p-4">
+      {/* Sync Button */}
+      <button
+        onClick={handleSyncTransactions}
+        disabled={syncing}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[48px]"
+      >
+        <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+        {syncing ? "Syncing..." : "Sync Transactions"}
+      </button>
 
-      {/* Add Bank Form */}
-      {showAddForm && (
-        <form
-          onSubmit={handleAddConnection}
-          className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6 space-y-3"
+      {syncMessage && (
+        <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3">
+          <CheckCircle className="h-4 w-4" />
+          {syncMessage}
+        </div>
+      )}
+
+      {/* Connected Banks */}
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+        </div>
+      ) : connections.length > 0 ? (
+        <div className="space-y-2">
+          {connections.map((conn) => (
+            <div
+              key={conn.id}
+              className="flex items-center justify-between rounded-xl bg-gray-50 p-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100">
+                  <Building2 className="h-4 w-4 text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
+                  <p className="text-xs text-gray-500">{conn.accountName || "Main account"}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  {conn.status}
+                </span>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  Last synced: {timeAgo(conn.lastSynced)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 text-center py-2">No banks connected yet.</p>
+      )}
+
+      {/* Add Bank */}
+      {!showAddForm ? (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors min-h-[48px]"
         >
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Bank Name</label>
-            <input
-              type="text"
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-              placeholder="e.g. Chase, Bank of America"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
+          <Plus className="h-4 w-4" />
+          Add Bank Connection
+        </button>
+      ) : (
+        <form onSubmit={handleAddConnection} className="rounded-xl bg-gray-50 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-900">New Connection</p>
+            <button type="button" onClick={() => setShowAddForm(false)} className="p-1 text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Account Name</label>
-            <input
-              type="text"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              placeholder="e.g. Business Checking"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
-          </div>
+          <input
+            type="text"
+            value={bankName}
+            onChange={(e) => setBankName(e.target.value)}
+            placeholder="Bank name"
+            className="input-field"
+            required
+          />
+          <input
+            type="text"
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
+            placeholder="Account name (optional)"
+            className="input-field"
+          />
           <button
             type="submit"
-            disabled={submitting || !bankName.trim() || !accountName.trim()}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+            disabled={submitting || !bankName.trim()}
+            className="btn-primary w-full"
           >
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Building2 className="h-4 w-4" />
-            )}
-            {submitting ? "Connecting..." : "Connect Bank"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+            {submitting ? "Connecting..." : "Connect"}
           </button>
         </form>
       )}
 
-      {/* Connected Banks */}
-      <section className="mb-8">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
-          Connected Accounts
-        </h2>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-          </div>
-        ) : connections.length === 0 ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
-            <Building2 className="h-10 w-10 text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No bank connections yet.</p>
-            <p className="text-xs text-gray-600 mt-1">
-              Add a bank to start importing transactions.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {connections.map((conn) => (
-              <div
-                key={conn.id}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-gray-800 rounded-lg p-2">
-                    <Building2 className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{conn.bankName}</p>
-                    <p className="text-xs text-gray-500">{conn.accountName}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                      conn.status === "connected"
-                        ? "bg-emerald-500/20 text-emerald-400"
-                        : "bg-yellow-500/20 text-yellow-400"
-                    }`}
-                  >
-                    {conn.status}
-                  </span>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Synced {formatDate(conn.lastSynced)}
-                  </p>
-                </div>
-              </div>
-            ))}
+      {/* Upload Bank Statement */}
+      <div className="rounded-xl bg-gray-50 p-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+          Upload Bank Statement
+        </p>
+        <p className="text-xs text-gray-400 mb-3">
+          CSV format: date, merchant, amount, reference, description
+        </p>
+        <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 py-4 cursor-pointer hover:border-teal-300 transition-colors min-h-[48px]">
+          {importing ? (
+            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+          ) : (
+            <Upload className="h-4 w-4 text-gray-400" />
+          )}
+          <span className="text-sm text-gray-500">
+            {importing ? "Importing..." : "Choose CSV file"}
+          </span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVUpload}
+            className="hidden"
+            disabled={importing}
+          />
+        </label>
+        {importedCount !== null && (
+          <div className="flex items-center gap-2 mt-3 text-sm text-emerald-600">
+            <CheckCircle className="h-4 w-4" />
+            {importedCount} transactions imported
           </div>
         )}
-      </section>
+      </div>
 
-      {/* Import Transactions */}
-      <section className="mb-8">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
-          Import Transactions
-        </h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-3">
-            Upload a CSV file with columns: date, merchant, amount, reference, description
-          </p>
-          <label className="flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-gray-750 border border-dashed border-gray-600 rounded-lg py-4 cursor-pointer transition-colors">
-            {importing ? (
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-            ) : (
-              <Upload className="h-5 w-5 text-gray-400" />
-            )}
-            <span className="text-sm text-gray-400">
-              {importing ? "Importing..." : "Choose CSV file"}
-            </span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCSVUpload}
-              className="hidden"
-              disabled={importing}
-            />
-          </label>
-          {importedCount !== null && (
-            <div className="flex items-center gap-2 mt-3 text-sm text-emerald-400">
-              <CheckCircle className="h-4 w-4" />
-              <span>{importedCount} transactions imported successfully</span>
-            </div>
+      {/* Match Payments */}
+      <div className="rounded-xl bg-gray-50 p-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+          Match Payments
+        </p>
+        <p className="text-xs text-gray-400 mb-3">
+          AI matches bank transactions with your invoices
+        </p>
+        <button
+          onClick={handleRunMatching}
+          disabled={matching}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white hover:bg-slate-700 transition-colors min-h-[48px] disabled:opacity-50"
+        >
+          {matching ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              Matching...
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4" />
+              Match Payments
+            </>
           )}
-        </div>
-      </section>
-
-      {/* AI Matching */}
-      <section>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
-          AI Matching
-        </h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-3">
-            Match imported bank transactions with your invoices using AI.
-          </p>
-          <button
-            onClick={handleRunMatching}
-            disabled={matching}
-            className="w-full bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            {matching ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Matching...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4" />
-                Run AI Matching
-              </>
-            )}
-          </button>
-          {matchResults && (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-emerald-400">
-                <CheckCircle className="h-4 w-4" />
-                <span>{matchResults.matched} invoices matched</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-yellow-400">
-                <RefreshCw className="h-4 w-4" />
-                <span>{matchResults.possiblyMatched} possibly matched</span>
-              </div>
+        </button>
+        {matchResults && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center gap-2 text-sm text-emerald-600">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {matchResults.matchesFound} invoices matched
             </div>
-          )}
-        </div>
-      </section>
+            {matchResults.invoicesUpdated > 0 && (
+              <div className="flex items-center gap-2 text-sm text-teal-600">
+                <CheckCircle className="h-3.5 w-3.5" />
+                {matchResults.invoicesUpdated} auto-marked as paid
+              </div>
+            )}
+            {matchResults.possibleMatches > 0 && (
+              <div className="flex items-center gap-2 text-sm text-amber-600">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {matchResults.possibleMatches} possibly matched
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

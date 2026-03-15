@@ -16,6 +16,8 @@ import {
   Shield,
   Info,
   X,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { StatusBadge } from "./status-badge";
 import {
@@ -71,6 +73,7 @@ export function InvoiceDetail({
 }: InvoiceDetailProps) {
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -96,12 +99,24 @@ export function InvoiceDetail({
     setShowPayConfirm(true);
   };
 
-  const handleConfirmPay = () => {
+  const handleConfirmPay = async () => {
     window.open(
       `https://pay.example.com?iban=${invoice.iban || ""}&amount=${invoice.amount}&ref=${invoice.reference || ""}`,
       "_blank"
     );
     setShowPayConfirm(false);
+
+    // Quick sync: trigger payment matching after a short delay
+    setSyncing(true);
+    try {
+      await new Promise((r) => setTimeout(r, 2000));
+      await fetch("/api/match", { method: "POST" });
+      onRefresh();
+    } catch {
+      // silently fail — user can manually sync later
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -292,6 +307,12 @@ export function InvoiceDetail({
 
       {/* Fixed action bar at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {syncing && (
+          <div className="flex items-center justify-center gap-2 text-teal-600 text-sm font-medium py-2 mb-2">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Checking for payment...
+          </div>
+        )}
         {invoice.status === "paid" ? (
           <div className="flex items-center justify-center gap-2 text-emerald-600 font-medium py-2">
             <CheckCircle className="h-5 w-5" />
@@ -456,15 +477,29 @@ function PaymentStatusIndicator({
     return (
       <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
         <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-        <div className="text-sm">
+        <div className="text-sm flex-1">
           <p className="font-semibold text-emerald-900">
             Paid {paidAt ? formatDate(paidAt) : ""}
           </p>
           {bestMatch && (
-            <p className="text-emerald-700 mt-0.5">
-              Matched to {bestMatch.transaction.merchant} on{" "}
-              {formatDate(bestMatch.transaction.date)}
-            </p>
+            <>
+              <p className="text-emerald-700 mt-0.5">
+                Matched to bank transaction &middot;{" "}
+                {bestMatch.transaction.merchant} on{" "}
+                {formatDate(bestMatch.transaction.date)}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1 h-1.5 bg-emerald-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{ width: `${Math.round(bestMatch.confidenceScore * 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-emerald-700">
+                  {Math.round(bestMatch.confidenceScore * 100)}% match
+                </span>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -479,14 +514,24 @@ function PaymentStatusIndicator({
     return (
       <div className="flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
         <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-        <div className="text-sm">
+        <div className="text-sm flex-1">
           <p className="font-semibold text-amber-900">Possibly paid</p>
           <p className="text-amber-700 mt-0.5">
-            A similar payment of{" "}
             {formatCurrency(bestMatch.transaction.amount, "EUR")} to{" "}
-            {bestMatch.transaction.merchant} was found on{" "}
-            {formatDate(bestMatch.transaction.date)}.
+            {bestMatch.transaction.merchant} on{" "}
+            {formatDate(bestMatch.transaction.date)}
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full"
+                style={{ width: `${Math.round(bestMatch.confidenceScore * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold text-amber-700">
+              {Math.round(bestMatch.confidenceScore * 100)}% match
+            </span>
+          </div>
         </div>
       </div>
     );

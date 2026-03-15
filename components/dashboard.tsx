@@ -33,6 +33,7 @@ import { ExportDialog } from "./export-dialog";
 import { Timeline } from "./timeline";
 import { BankConnections } from "./bank-connections";
 import { Notifications } from "./notifications";
+import { AskRicordo } from "./ask-ricordo";
 import {
   formatCurrency,
   getGreeting,
@@ -546,6 +547,16 @@ export function Dashboard() {
         <p className="text-sm text-gray-500 mt-0.5">
           Your AI payment memory
         </p>
+      </div>
+
+      {/* Ask Ricordo */}
+      <div className="mb-6">
+        <AskRicordo
+          onSelectInvoice={(id) => {
+            const inv = invoices.find(i => i.id === id);
+            if (inv) setSelectedInvoice(inv);
+          }}
+        />
       </div>
 
       {/* Summary cards */}

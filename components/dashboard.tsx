@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import {
-  Lock,
   Bell,
   Camera,
   Upload,
@@ -83,15 +84,14 @@ export function Dashboard() {
     "camera" | "file" | "manual"
   >("file");
   const [exportOpen, setExportOpen] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
   const [autoPay, setAutoPay] = useState(false);
   const [autoPayMode, setAutoPayMode] = useState<"approval" | "auto">("approval");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const router = useRouter();
 
   const fetchInvoices = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -122,45 +122,15 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("ricordo-auth");
-    if (saved === "true") {
-      setAuthenticated(true);
-    }
-  }, []);
+    fetchInvoices();
+    fetchUnreadCount();
+  }, [fetchInvoices, fetchUnreadCount]);
 
-  useEffect(() => {
-    if (authenticated) {
-      fetchInvoices();
-      fetchUnreadCount();
-    }
-  }, [authenticated, fetchInvoices, fetchUnreadCount]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError("");
-
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      if (res.ok) {
-        setAuthenticated(true);
-        sessionStorage.setItem("ricordo-auth", "true");
-      } else {
-        setAuthError(t("login_error_wrong"));
-      }
-    } catch {
-      setAuthError(t("login_error_connection"));
-    }
-  };
-
-  const handleLogout = () => {
-    setAuthenticated(false);
-    sessionStorage.removeItem("ricordo-auth");
-    setPassword("");
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
   };
 
   const handleMarkPaid = async (id: string) => {
@@ -225,46 +195,6 @@ export function Dashboard() {
     if (hour < 12) return t("greeting_morning");
     if (hour < 18) return t("greeting_afternoon");
     return t("greeting_evening");
-  }
-
-  // -- Login Screen --
-  if (!authenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6">
-        <div className="w-full max-w-sm">
-          <div className="card p-8">
-            <div className="flex flex-col items-center mb-8">
-              <img src="/ricordo-logo.png" alt="Ricordo" className="h-32 w-auto mb-2" />
-              <p className="text-sm text-gray-500 mt-1">
-                {t("app_tagline")}
-              </p>
-            </div>
-
-            <form onSubmit={handleLogin}>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t("login_password_placeholder")}
-                  className="input-field pl-11"
-                  autoFocus
-                />
-              </div>
-              {authError && (
-                <p className="mt-2 text-sm text-red-600 font-medium">
-                  {authError}
-                </p>
-              )}
-              <button type="submit" className="btn-primary w-full mt-4">
-                {t("login_button")}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   // -- Invoice detail view --

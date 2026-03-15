@@ -6,9 +6,16 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const LOCALE_NAMES: Record<string, string> = {
   en: "English",
+  de: "German",
+  fr: "French",
+  es: "Spanish",
+  it: "Italian",
   fi: "Finnish",
   sv: "Swedish",
-  de: "German",
+  no: "Norwegian",
+  da: "Danish",
+  nl: "Dutch",
+  pl: "Polish",
 };
 
 function getSystemPrompt(locale: string): string {

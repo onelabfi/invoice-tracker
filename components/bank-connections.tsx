@@ -39,6 +39,8 @@ const COUNTRIES = [
   { code: "SE", name: "Sweden", flag: "🇸🇪" },
   { code: "NO", name: "Norway", flag: "🇳🇴" },
   { code: "DK", name: "Denmark", flag: "🇩🇰" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "IE", name: "Ireland", flag: "🇮🇪" },
   { code: "DE", name: "Germany", flag: "🇩🇪" },
   { code: "FR", name: "France", flag: "🇫🇷" },
   { code: "ES", name: "Spain", flag: "🇪🇸" },
@@ -303,7 +305,7 @@ export function BankConnections() {
             <button
               key={c.code}
               onClick={() => handleCountrySelect(c.code)}
-              className="w-full flex items-center gap-3 rounded-xl bg-gray-50 p-3 text-left hover:bg-teal-50 hover:ring-1 hover:ring-teal-200 transition-all min-h-[48px]"
+              className="w-full flex items-center gap-3 rounded-xl bg-gray-50 p-3 text-left hover:bg-blue-50 hover:ring-1 hover:ring-blue-200 transition-all min-h-[48px]"
             >
               <span className="text-lg">{c.flag}</span>
               <span className="text-sm font-medium text-gray-900 flex-1">{c.name}</span>
@@ -338,7 +340,7 @@ export function BankConnections() {
             value={bankSearch}
             onChange={(e) => setBankSearch(e.target.value)}
             placeholder={t("bank_search_placeholder")}
-            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 border border-transparent"
+            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 border border-transparent"
             autoFocus
           />
         </div>
@@ -346,7 +348,7 @@ export function BankConnections() {
         {/* Bank list */}
         {loadingBanks ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-[#1e3a5f]" />
           </div>
         ) : (
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
@@ -356,10 +358,10 @@ export function BankConnections() {
               return (
                 <button
                   key={bank.id}
-                  onClick={() => setSelectedBank(bank)}
+                  onClick={() => { setSelectedBank(bank); setIsHolvi(false); }}
                   className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all min-h-[48px] ${
                     isSelected
-                      ? "bg-teal-50 ring-2 ring-teal-500"
+                      ? "bg-blue-50 ring-2 ring-[#1e3a5f]"
                       : "bg-gray-50 hover:bg-gray-100"
                   }`}
                 >
@@ -370,7 +372,7 @@ export function BankConnections() {
                     <p className="text-sm font-medium text-gray-900">{bank.name}</p>
                   </div>
                   {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-[#1e3a5f] flex items-center justify-center">
                       <CheckCircle className="h-3.5 w-3.5 text-white" />
                     </div>
                   )}
@@ -392,7 +394,7 @@ export function BankConnections() {
               value={iban}
               onChange={(e) => setIban(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
               placeholder={selectedCountry === "US" ? "Account number" : "FI21 1234 5600 0007 85"}
-              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 border border-transparent font-mono tracking-wider"
+              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 border border-transparent font-mono tracking-wider"
             />
             <p className="text-[10px] text-gray-400 px-1">{t("bank_iban_hint")}</p>
           </div>
@@ -402,7 +404,7 @@ export function BankConnections() {
         {selectedBank && (
           <button
             onClick={handleConnect}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition-colors min-h-[48px]"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#1e3a5f] py-3 text-sm font-semibold text-white hover:bg-[#152d4a] transition-colors min-h-[48px]"
           >
             <Shield className="h-4 w-4" />
             {t("bank_connect_button")}
@@ -450,9 +452,9 @@ export function BankConnections() {
     return (
       <div className="p-4 flex flex-col items-center justify-center py-12">
         <div className="relative mb-4">
-          <div className="h-16 w-16 rounded-full border-4 border-teal-200 animate-pulse" />
+          <div className="h-16 w-16 rounded-full border-4 border-blue-200 animate-pulse" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 text-teal-500 animate-spin" />
+            <Loader2 className="h-8 w-8 text-[#1e3a5f] animate-spin" />
           </div>
         </div>
         <p className="text-sm font-semibold text-gray-900">{t("bank_authenticating")}</p>
@@ -487,7 +489,7 @@ export function BankConnections() {
       <button
         onClick={handleSyncTransactions}
         disabled={syncing || connections.length === 0}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[48px] disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-50 py-3 text-sm font-semibold text-[#152d4a] hover:bg-blue-100 transition-colors min-h-[48px] disabled:opacity-50"
       >
         <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
         {syncing ? t("syncing") : t("sync_transactions")}
@@ -513,8 +515,8 @@ export function BankConnections() {
               className="flex items-center justify-between rounded-xl bg-gray-50 p-3"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100">
-                  <Building2 className="h-4 w-4 text-teal-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100">
+                  <Building2 className="h-4 w-4 text-[#1e3a5f]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
@@ -544,7 +546,7 @@ export function BankConnections() {
       {/* Add Bank Connection */}
       <button
         onClick={() => setWizardStep("country")}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors min-h-[48px]"
+        className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-[#1e3a5f] hover:text-[#1e3a5f] transition-colors min-h-[48px]"
       >
         <Plus className="h-4 w-4" />
         {t("add_bank_connection")}
@@ -558,7 +560,7 @@ export function BankConnections() {
         <p className="text-xs text-gray-400 mb-3">
           {t("csv_format_hint")}
         </p>
-        <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 py-4 cursor-pointer hover:border-teal-300 transition-colors min-h-[48px]">
+        <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 py-4 cursor-pointer hover:border-[#1e3a5f] transition-colors min-h-[48px]">
           {importing ? (
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
           ) : (
@@ -616,7 +618,7 @@ export function BankConnections() {
               {matchResults.matchesFound} {t("invoices_matched")}
             </div>
             {matchResults.invoicesUpdated > 0 && (
-              <div className="flex items-center gap-2 text-sm text-teal-600">
+              <div className="flex items-center gap-2 text-sm text-[#1e3a5f]">
                 <CheckCircle className="h-3.5 w-3.5" />
                 {matchResults.invoicesUpdated} {t("auto_marked_paid")}
               </div>

@@ -103,15 +103,15 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
           relative rounded-2xl transition-all duration-300
           ${
             isExpanded
-              ? "bg-white shadow-lg ring-1 ring-teal-200"
-              : "bg-white shadow-sm ring-1 ring-gray-200 hover:ring-teal-300 hover:shadow-md"
+              ? "bg-white shadow-lg ring-1 ring-[#1e3a5f]/30"
+              : "bg-white shadow-sm ring-1 ring-gray-200 hover:ring-[#1e3a5f]/30 hover:shadow-md"
           }
         `}
       >
         {/* Gradient border effect when expanded */}
         {isExpanded && (
           <div
-            className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-400 -z-10"
+            className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-[#1e3a5f] to-[#2a4a72] -z-10"
             aria-hidden="true"
           />
         )}
@@ -120,7 +120,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
         <div className="flex items-center gap-3 px-4 py-3">
           <Brain
             className={`h-5 w-5 flex-shrink-0 transition-colors ${
-              isExpanded ? "text-teal-600" : "text-gray-400"
+              isExpanded ? "text-[#1e3a5f]" : "text-gray-400"
             }`}
           />
 
@@ -141,7 +141,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                 <button
                   type="button"
                   onClick={() => handleSubmit(query)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:from-teal-600 hover:to-emerald-600 active:scale-95 transition-all"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-gradient-to-r from-[#1e3a5f] to-[#2a4a72] text-white hover:from-[#152d4a] hover:to-[#1e3a5f] active:scale-95 transition-all"
                   aria-label="Send question"
                 >
                   <Send className="h-4 w-4" />
@@ -166,7 +166,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
             {!hasResult && !isLoading && !query.trim() && (
               <div className="pt-2 border-t border-gray-100">
                 <div className="flex items-center gap-1.5 mb-3">
-                  <Sparkles className="h-3.5 w-3.5 text-teal-500" />
+                  <Sparkles className="h-3.5 w-3.5 text-[#1e3a5f]" />
                   <span className="text-xs font-medium text-gray-500">
                     {t("try_asking")}
                   </span>
@@ -180,7 +180,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                         setQuery(q);
                         handleSubmit(q);
                       }}
-                      className="min-h-[44px] px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-sm font-medium hover:bg-teal-100 active:scale-95 transition-all"
+                      className="min-h-[44px] px-4 py-2 rounded-full bg-blue-50 text-[#152d4a] text-sm font-medium hover:bg-blue-100 active:scale-95 transition-all"
                     >
                       {q}
                     </button>
@@ -193,7 +193,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
             {isLoading && (
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex items-center gap-3 py-4">
-                  <Loader2 className="h-5 w-5 text-teal-500 animate-spin flex-shrink-0" />
+                  <Loader2 className="h-5 w-5 text-[#1e3a5f] animate-spin flex-shrink-0" />
                   <span className="text-sm text-gray-500 font-medium">
                     {t("ricordo_thinking")}
                   </span>
@@ -206,17 +206,17 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
               <div className="pt-3 border-t border-gray-100 space-y-3">
                 {/* User question echo */}
                 <div className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-teal-500 px-4 py-3 text-sm text-white">
+                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-blue-500 px-4 py-3 text-sm text-white">
                     {query}
                   </div>
                 </div>
 
                 {/* AI answer */}
                 <div className="flex items-start gap-2.5">
-                  <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-teal-50">
-                    <MessageCircle className="h-3.5 w-3.5 text-teal-600" />
+                  <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-50">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#1e3a5f]" />
                   </div>
-                  <div className="flex-1 rounded-2xl rounded-tl-md border-l-2 border-teal-400 bg-gray-50 px-4 py-3">
+                  <div className="flex-1 rounded-2xl rounded-tl-md border-l-2 border-[#2a4a72] bg-gray-50 px-4 py-3">
                     <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                       {response.answer}
                     </p>
@@ -236,7 +236,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                             key={inv.id}
                             type="button"
                             onClick={() => onSelectInvoice?.(inv.id)}
-                            className="min-h-[44px] flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-teal-300 hover:shadow-sm active:scale-[0.98] transition-all"
+                            className="min-h-[44px] flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-[#1e3a5f]/30 hover:shadow-sm active:scale-[0.98] transition-all"
                           >
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">
@@ -265,7 +265,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-teal-600 hover:bg-teal-50 active:scale-95 transition-all"
+                    className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-[#1e3a5f] hover:bg-blue-50 active:scale-95 transition-all"
                   >
                     {t("ask_another")}
                   </button>
@@ -282,7 +282,7 @@ export function AskRicordo({ onSelectInvoice }: AskRicordoProps) {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-teal-600 hover:bg-teal-50 active:scale-95 transition-all"
+                  className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium text-[#1e3a5f] hover:bg-blue-50 active:scale-95 transition-all"
                 >
                   {t("try_again")}
                 </button>

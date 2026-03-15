@@ -310,7 +310,7 @@ export function InvoiceDetail({
       {/* Fixed action bar at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {syncing && (
-          <div className="flex items-center justify-center gap-2 text-teal-600 text-sm font-medium py-2 mb-2">
+          <div className="flex items-center justify-center gap-2 text-[#1e3a5f] text-sm font-medium py-2 mb-2">
             <RefreshCw className="h-4 w-4 animate-spin" />
             {t("checking_for_payment")}
           </div>

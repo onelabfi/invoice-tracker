@@ -38,7 +38,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   },
   matched: {
     label: "Matched",
-    className: "bg-teal-500 text-white",
+    className: "bg-[#1e3a5f] text-white",
   },
 };
 

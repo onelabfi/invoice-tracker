@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Country → Provider mapping
 const COUNTRY_PROVIDERS: Record<string, "nordigen" | "plaid"> = {
   FI: "nordigen", SE: "nordigen", NO: "nordigen", DK: "nordigen",
+  GB: "nordigen", IE: "nordigen",
   DE: "nordigen", FR: "nordigen", ES: "nordigen", IT: "nordigen",
   NL: "nordigen", US: "plaid",
 };
@@ -41,6 +42,25 @@ const KNOWN_BANKS: Record<string, { id: string; name: string; logo?: string }[]>
     { id: "jyskebank_dk", name: "Jyske Bank" },
     { id: "nykredit_dk", name: "Nykredit" },
     { id: "sydbank_dk", name: "Sydbank" },
+  ],
+  GB: [
+    { id: "hsbc_gb", name: "HSBC" },
+    { id: "barclays_gb", name: "Barclays" },
+    { id: "lloyds_gb", name: "Lloyds Bank" },
+    { id: "natwest_gb", name: "NatWest" },
+    { id: "santander_gb", name: "Santander UK" },
+    { id: "nationwide_gb", name: "Nationwide" },
+    { id: "monzo_gb", name: "Monzo" },
+    { id: "revolut_gb", name: "Revolut" },
+    { id: "starling_gb", name: "Starling Bank" },
+  ],
+  IE: [
+    { id: "aib_ie", name: "AIB" },
+    { id: "boi_ie", name: "Bank of Ireland" },
+    { id: "ptsb_ie", name: "Permanent TSB" },
+    { id: "ulsterbank_ie", name: "Ulster Bank" },
+    { id: "revolut_ie", name: "Revolut" },
+    { id: "n26_ie", name: "N26" },
   ],
   DE: [
     { id: "deutsche_de", name: "Deutsche Bank" },

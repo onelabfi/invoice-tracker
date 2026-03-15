@@ -386,7 +386,7 @@ export function Dashboard() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("search_invoices")}
-            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white focus:border-teal-500 border border-transparent transition-all"
+            className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:bg-white focus:border-[#1e3a5f] border border-transparent transition-all"
           />
         </div>
 
@@ -394,21 +394,21 @@ export function Dashboard() {
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => openUpload("camera")}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-[#152d4a] hover:bg-blue-100 transition-colors min-h-[44px]"
           >
             <Camera className="h-4 w-4" />
             {t("scan")}
           </button>
           <button
             onClick={() => openUpload("file")}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-[#152d4a] hover:bg-blue-100 transition-colors min-h-[44px]"
           >
             <Upload className="h-4 w-4" />
             {t("upload")}
           </button>
           <button
             onClick={() => openUpload("manual")}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 py-2.5 text-sm font-semibold text-[#152d4a] hover:bg-blue-100 transition-colors min-h-[44px]"
           >
             <Edit3 className="h-4 w-4" />
             {t("manual")}
@@ -484,7 +484,7 @@ export function Dashboard() {
       <div className="px-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-500 mb-3" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f] mb-3" />
             <p className="text-sm text-gray-500">{t("loading_invoices")}</p>
           </div>
         ) : filteredInvoices.length === 0 ? (
@@ -614,8 +614,8 @@ export function Dashboard() {
 
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100">
-              <TrendingUp className="h-4 w-4 text-teal-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+              <TrendingUp className="h-4 w-4 text-[#1e3a5f]" />
             </div>
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               {t("card_fees_saved")}
@@ -665,7 +665,7 @@ export function Dashboard() {
                 {m.amount > 0 ? formatCurrency(m.amount) : ""}
               </span>
               <div
-                className="w-full bg-gradient-to-t from-teal-600 to-teal-400 rounded-t-lg transition-all duration-500 min-h-[4px]"
+                className="w-full bg-gradient-to-t from-[#1e3a5f] to-[#2a4a72] rounded-t-lg transition-all duration-500 min-h-[4px]"
                 style={{
                   height: `${Math.max(
                     (m.amount / maxSpending) * 100,
@@ -687,7 +687,7 @@ export function Dashboard() {
           <h2 className="text-sm font-bold text-gray-900">{t("recent_activity")}</h2>
           <button
             onClick={() => setActiveTab("inbox")}
-            className="text-xs font-medium text-teal-600 flex items-center gap-0.5"
+            className="text-xs font-medium text-[#1e3a5f] flex items-center gap-0.5"
           >
             {t("view_all")} <ChevronRight className="h-3 w-3" />
           </button>
@@ -773,8 +773,8 @@ export function Dashboard() {
               {invoices.length} {t("invoices_tracked")}
             </p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 overflow-hidden p-1.5">
-            <img src="/ricordo-logo.png" alt="Ricordo" className="h-full w-full object-contain" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+            <img src="/icon-192.png" alt="Ricordo" className="h-full w-full object-cover" />
           </div>
         </div>
       </div>
@@ -804,7 +804,7 @@ export function Dashboard() {
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
-            className="w-full rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none cursor-pointer"
+            className="w-full rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f] appearance-none cursor-pointer"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center' }}
           >
             {SUPPORTED_LOCALES.map((loc) => (
@@ -857,7 +857,7 @@ export function Dashboard() {
           <button
             onClick={() => setAutoPay(!autoPay)}
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              autoPay ? "bg-teal-600" : "bg-gray-300"
+              autoPay ? "bg-[#1e3a5f]" : "bg-gray-300"
             }`}
           >
             <div
@@ -874,14 +874,14 @@ export function Dashboard() {
               onClick={() => setAutoPayMode("approval")}
               className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
                 autoPayMode === "approval"
-                  ? "bg-teal-50 border-2 border-teal-500"
+                  ? "bg-blue-50 border-2 border-[#1e3a5f]"
                   : "bg-gray-50 border-2 border-transparent"
               }`}
             >
               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                autoPayMode === "approval" ? "border-teal-500" : "border-gray-300"
+                autoPayMode === "approval" ? "border-[#1e3a5f]" : "border-gray-300"
               }`}>
-                {autoPayMode === "approval" && <div className="w-2 h-2 rounded-full bg-teal-500" />}
+                {autoPayMode === "approval" && <div className="w-2 h-2 rounded-full bg-[#1e3a5f]" />}
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{t("approval_mode")}</p>
@@ -892,14 +892,14 @@ export function Dashboard() {
               onClick={() => setAutoPayMode("auto")}
               className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
                 autoPayMode === "auto"
-                  ? "bg-teal-50 border-2 border-teal-500"
+                  ? "bg-blue-50 border-2 border-[#1e3a5f]"
                   : "bg-gray-50 border-2 border-transparent"
               }`}
             >
               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                autoPayMode === "auto" ? "border-teal-500" : "border-gray-300"
+                autoPayMode === "auto" ? "border-[#1e3a5f]" : "border-gray-300"
               }`}>
-                {autoPayMode === "auto" && <div className="w-2 h-2 rounded-full bg-teal-500" />}
+                {autoPayMode === "auto" && <div className="w-2 h-2 rounded-full bg-[#1e3a5f]" />}
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{t("auto_mode")}</p>
@@ -1006,7 +1006,7 @@ export function Dashboard() {
                 </div>
                 <span className="text-[10px] font-semibold">{item.label}</span>
                 {isActive && (
-                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-teal-600" />
+                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#1e3a5f]" />
                 )}
               </button>
             );

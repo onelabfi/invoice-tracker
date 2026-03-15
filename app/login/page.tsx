@@ -34,10 +34,13 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
+      // Hard redirect ensures cookies are sent on the next full page load
+      window.location.href = "/";
+    } catch (err) {
+      console.error("[Login] caught error:", err);
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }

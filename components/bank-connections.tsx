@@ -106,9 +106,11 @@ export function BankConnections() {
       const res = await fetch("/api/bank-connections");
       if (res.ok) {
         const data = await res.json();
-        // Extra client-side guard: Nordigen connections must have an IBAN
+        // Extra client-side guard: Nordigen/Tink connections must have an IBAN
         const real = (data as BankConnection[]).filter(
-          (c) => c.provider !== "nordigen" || !!c.accountName
+          (c) =>
+            (c.provider !== "nordigen" && c.provider !== "tink") ||
+            !!c.accountName
         );
         setConnections(real);
       }
@@ -160,7 +162,7 @@ export function BankConnections() {
     setWizardStep("connecting");
 
     try {
-      const provider = selectedCountry === "US" ? "plaid" : "nordigen";
+      const provider = selectedCountry === "US" ? "plaid" : "tink";
       const res = await fetch("/api/banks/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

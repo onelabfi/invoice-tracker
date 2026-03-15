@@ -43,15 +43,17 @@ export default function SignupPage() {
 
       // If Supabase requires email confirmation the session will be null
       if (data.session) {
-        // Confirmed immediately — go straight to the app
-        router.push("/");
-        router.refresh();
+        // Hard redirect ensures cookies are sent on the next full page load
+        window.location.href = "/";
       } else {
         // Email confirmation required
         setSuccess(true);
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      console.error("[Signup] caught error:", err);
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }

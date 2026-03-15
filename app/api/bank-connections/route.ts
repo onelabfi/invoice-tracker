@@ -20,6 +20,11 @@ export async function GET() {
             accountName:       { not: null },
             accountExternalId: { not: null },
           },
+          {
+            provider: "tink",
+            accountName:       { not: null },
+            accountExternalId: { not: null },
+          },
         ],
       },
       orderBy: { createdAt: "desc" },
@@ -57,6 +62,7 @@ export async function DELETE(request: NextRequest) {
           OR: [
             { status: { not: "connected" } },
             { provider: "nordigen", accountExternalId: null },
+            { provider: "tink", accountExternalId: null },
           ],
         },
       });

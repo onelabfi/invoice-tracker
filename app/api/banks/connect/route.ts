@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const TINK_BASE = "https://api.tink.com";
+const TINK_LINK_ACTOR_CLIENT_ID = "df05e4b379934cd09963197cc855bfe9";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -8,7 +11,7 @@ export async function POST(request: NextRequest) {
       institutionId: string;
       institutionName: string;
       country: string;
-      provider: "nordigen" | "plaid" | "csv";
+      provider: "nordigen" | "tink" | "plaid" | "csv";
       iban?: string;
     };
 
@@ -16,7 +19,114 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // For Nordigen (European Open Banking)
+    // For Tink (European Open Banking) — preferred over Nordigen when credentials exist
+    if (
+      (provider === "nordigen" || provider === "tink") &&
+      process.env.TINK_CLIENT_ID &&
+      process.env.TINK_CLIENT_SECRET
+    ) {
+      try {
+        const origin = request.nextUrl.origin;
+
+        // 1. Get client access token
+        const tokenRes = await fetch(`${TINK_BASE}/api/v1/oauth/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            client_id: process.env.TINK_CLIENT_ID,
+            client_secret: process.env.TINK_CLIENT_SECRET,
+            scope: "authorization:grant,user:create,user:read,credentials:read,credentials:write",
+          }),
+        });
+
+        if (!tokenRes.ok) {
+          const errText = await tokenRes.text();
+          throw new Error(`Tink token error ${tokenRes.status}: ${errText}`);
+        }
+        const { access_token: clientToken } = await tokenRes.json();
+
+        // 2. Create a unique Tink user
+        const externalUserId = `ricordo-${Date.now()}`;
+        const userRes = await fetch(`${TINK_BASE}/api/v1/user/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${clientToken}`,
+          },
+          body: JSON.stringify({
+            external_user_id: externalUserId,
+            market: country,
+            locale: "en_US",
+          }),
+        });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          throw new Error(`Tink user create error ${userRes.status}: ${errText}`);
+        }
+        const { user_id: tinkUserId } = await userRes.json();
+
+        // 3. Generate authorization code for Tink Link
+        const authGrantRes = await fetch(
+          `${TINK_BASE}/api/v1/oauth/authorization-grant/delegate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Authorization: `Bearer ${clientToken}`,
+            },
+            body: new URLSearchParams({
+              response_type: "code",
+              actor_client_id: TINK_LINK_ACTOR_CLIENT_ID,
+              user_id: tinkUserId,
+              scope:
+                "user:read,identity:read,authorization:read,credentials:read,credentials:write,providers:read,accounts:read,balances:read,transactions:read",
+            }),
+          }
+        );
+
+        if (!authGrantRes.ok) {
+          const errText = await authGrantRes.text();
+          throw new Error(`Tink auth grant error ${authGrantRes.status}: ${errText}`);
+        }
+        const { code: authCode } = await authGrantRes.json();
+
+        // 4. Build Tink Link URL
+        // Use account-check for sandbox compatibility; works for production too
+        const tinkLinkUrl =
+          `https://link.tink.com/1.0/account-check/one-time` +
+          `?client_id=${process.env.TINK_CLIENT_ID}` +
+          `&redirect_uri=${encodeURIComponent(`${origin}/api/banks/tink/callback`)}` +
+          `&authorization_code=${authCode}` +
+          `&market=${country}`;
+
+        // 5. Save BankConnection with provider="tink"
+        const connection = await prisma.bankConnection.create({
+          data: {
+            bankName: institutionName,
+            accountName: iban || null,
+            country,
+            provider: "tink",
+            institutionId: institutionId || null,
+            externalId: tinkUserId,
+            accessToken: clientToken,
+            status: "pending",
+          },
+        });
+
+        return NextResponse.json({
+          connection,
+          authUrl: tinkLinkUrl,
+          provider: "tink",
+        });
+      } catch (err) {
+        console.error("Tink connection error:", err);
+        // Fall through to Nordigen or demo mode
+      }
+    }
+
+    // For Nordigen (European Open Banking) — fallback if Tink not configured
     if (provider === "nordigen" && process.env.NORDIGEN_SECRET_ID && process.env.NORDIGEN_SECRET_KEY) {
       try {
         // Get access token

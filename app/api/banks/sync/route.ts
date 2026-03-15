@@ -40,6 +40,11 @@ export async function POST(request: NextRequest) {
           accountName:       { not: null as null },
           accountExternalId: { not: null as null },
         },
+        {
+          provider: "tink",
+          accountName:       { not: null as null },
+          accountExternalId: { not: null as null },
+        },
       ],
     };
 
@@ -56,6 +61,32 @@ export async function POST(request: NextRequest) {
     // Single fresh Nordigen token covers all Nordigen accounts
     const hasNordigen = connections.some((c) => c.provider === "nordigen");
     const nordigenToken = hasNordigen ? await getNordigenToken() : null;
+
+    // Tink: get a fresh client token if needed, then per-user tokens via delegate grant
+    const hasTink = connections.some((c) => c.provider === "tink");
+    let tinkClientToken: string | null = null;
+    if (hasTink && process.env.TINK_CLIENT_ID && process.env.TINK_CLIENT_SECRET) {
+      try {
+        const res = await fetch("https://api.tink.com/api/v1/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            client_id: process.env.TINK_CLIENT_ID,
+            client_secret: process.env.TINK_CLIENT_SECRET,
+            scope: "authorization:grant",
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          tinkClientToken = data.access_token;
+        } else {
+          console.error("[sync] Tink client token failed:", res.status);
+        }
+      } catch (err) {
+        console.error("[sync] Tink client token error:", err);
+      }
+    }
 
     if (hasNordigen && !nordigenToken) {
       console.error("[sync] Could not obtain Nordigen token — check NORDIGEN_SECRET_ID / NORDIGEN_SECRET_KEY");
@@ -158,6 +189,161 @@ export async function POST(request: NextRequest) {
 
         } catch (err) {
           console.error(`[sync] ✗ Nordigen error for "${conn.bankName}":`, err);
+          results[conn.id] = { status: "error", newTransactions: 0, error: String(err) };
+          continue;
+        }
+      }
+
+      // ── Tink ────────────────────────────────────────────────────────
+      if (conn.provider === "tink") {
+        if (!tinkClientToken || !conn.accountExternalId || !conn.externalId) {
+          const reason = !tinkClientToken
+            ? "no_tink_token"
+            : !conn.externalId
+            ? "missing_externalId"
+            : "missing_accountExternalId";
+          console.warn(`[sync] Skipping Tink "${conn.bankName}" (${conn.id}) -- ${reason}`);
+          results[conn.id] = { status: "skipped", newTransactions: 0, error: reason };
+          continue;
+        }
+
+        console.log(
+          `[sync] -> Tink "${conn.bankName}" accountId=${conn.accountExternalId} user=${conn.externalId}`
+        );
+
+        try {
+          // Get a user-scoped token via delegate grant
+          const authGrantRes = await fetch(
+            "https://api.tink.com/api/v1/oauth/authorization-grant/delegate",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization: `Bearer ${tinkClientToken}`,
+              },
+              body: new URLSearchParams({
+                response_type: "code",
+                actor_client_id: "df05e4b379934cd09963197cc855bfe9",
+                user_id: conn.externalId,
+                scope: "accounts:read,balances:read,transactions:read",
+              }),
+            }
+          );
+
+          if (!authGrantRes.ok) {
+            const errText = await authGrantRes.text();
+            console.error(`[sync] Tink auth grant failed: ${authGrantRes.status} ${errText}`);
+            results[conn.id] = { status: "error", newTransactions: 0, error: `auth_grant ${authGrantRes.status}` };
+            continue;
+          }
+          const { code: userAuthCode } = await authGrantRes.json();
+
+          const userTokenRes = await fetch("https://api.tink.com/api/v1/oauth/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              grant_type: "authorization_code",
+              client_id: process.env.TINK_CLIENT_ID!,
+              client_secret: process.env.TINK_CLIENT_SECRET!,
+              code: userAuthCode,
+            }),
+          });
+
+          if (!userTokenRes.ok) {
+            const errText = await userTokenRes.text();
+            console.error(`[sync] Tink user token failed: ${userTokenRes.status} ${errText}`);
+            results[conn.id] = { status: "error", newTransactions: 0, error: `user_token ${userTokenRes.status}` };
+            continue;
+          }
+          const { access_token: userToken } = await userTokenRes.json();
+
+          // Fetch transactions for the specific account
+          const txnRes = await fetch(
+            `https://api.tink.com/api/v1/transactions?accountId=${conn.accountExternalId}`,
+            { headers: { Authorization: `Bearer ${userToken}` } }
+          );
+
+          if (!txnRes.ok) {
+            const errText = await txnRes.text();
+            console.error(`[sync] Tink transactions failed: ${txnRes.status} ${errText}`);
+            results[conn.id] = { status: "error", newTransactions: 0, error: `transactions ${txnRes.status}` };
+            continue;
+          }
+
+          const txnData = await txnRes.json();
+          const transactions: Array<Record<string, unknown>> =
+            txnData.transactions ?? txnData.results ?? [];
+
+          console.log(`[sync]   ${transactions.length} transaction(s) from Tink`);
+
+          for (const txn of transactions) {
+            const amountObj = txn.amount as Record<string, unknown> | undefined;
+            const amount = Math.abs(
+              parseFloat(
+                (amountObj?.value as string) ??
+                  (amountObj?.unscaledValue as string) ??
+                  String(txn.amount ?? "0")
+              )
+            );
+            // Tink may use unscaledValue + scale
+            const scale = parseInt(String(amountObj?.scale ?? "0"), 10);
+            const finalAmount = scale > 0 ? amount / Math.pow(10, scale) : amount;
+
+            const dateStr =
+              (txn.dates as Record<string, string> | undefined)?.booked ??
+              (txn.date as string) ??
+              new Date().toISOString().split("T")[0];
+
+            const merchant =
+              (txn.descriptions as Record<string, string> | undefined)?.display ??
+              (txn.description as string) ??
+              (txn.merchantName as string) ??
+              "Unknown";
+
+            const reference =
+              (txn.descriptions as Record<string, string> | undefined)?.original ??
+              (txn.reference as string) ??
+              null;
+
+            // Dedup
+            const existing = await prisma.transaction.findFirst({
+              where: {
+                connectionId: conn.id,
+                amount: finalAmount,
+                date: new Date(dateStr),
+                merchant,
+              },
+            });
+
+            if (!existing) {
+              await prisma.transaction.create({
+                data: {
+                  merchant,
+                  amount: finalAmount,
+                  reference,
+                  description:
+                    (txn.descriptions as Record<string, string> | undefined)?.original ?? null,
+                  date: new Date(dateStr),
+                  bankAccount: conn.accountName ?? conn.bankName,
+                  connectionId: conn.id,
+                  rawData: JSON.stringify(txn),
+                },
+              });
+              transactionCount++;
+            }
+          }
+
+          await prisma.bankConnection.update({
+            where: { id: conn.id },
+            data: { accessToken: userToken, lastSynced: new Date() },
+          });
+
+          console.log(
+            `[sync] Done Tink "${conn.bankName}": ${transactionCount} new transaction(s)`
+          );
+          results[conn.id] = { status: "ok", newTransactions: transactionCount };
+        } catch (err) {
+          console.error(`[sync] Tink error for "${conn.bankName}":`, err);
           results[conn.id] = { status: "error", newTransactions: 0, error: String(err) };
           continue;
         }

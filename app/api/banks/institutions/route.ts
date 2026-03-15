@@ -123,7 +123,53 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unsupported country" }, { status: 400 });
   }
 
-  // Try live GoCardless/Nordigen API if configured
+  // Try Tink provider API if configured (preferred over Nordigen)
+  if (provider === "nordigen" && process.env.TINK_CLIENT_ID && process.env.TINK_CLIENT_SECRET) {
+    try {
+      // Get client access token
+      const tokenRes = await fetch("https://api.tink.com/api/v1/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: process.env.TINK_CLIENT_ID,
+          client_secret: process.env.TINK_CLIENT_SECRET,
+          scope: "authorization:grant",
+        }),
+      });
+
+      if (tokenRes.ok) {
+        const { access_token } = await tokenRes.json();
+
+        // Fetch providers (institutions) for country from Tink
+        const provRes = await fetch(
+          `https://api.tink.com/api/v1/providers/${country}?includeTestProviders=true`,
+          { headers: { Authorization: `Bearer ${access_token}` } }
+        );
+
+        if (provRes.ok) {
+          const provData = await provRes.json();
+          const providers: Array<Record<string, unknown>> = provData.providers ?? [];
+
+          if (providers.length > 0) {
+            return NextResponse.json({
+              provider: "nordigen", // keep the same provider key for the frontend
+              country,
+              institutions: providers.map((p) => ({
+                id: p.name as string,
+                name: p.displayName as string,
+                logo: (p.images as Record<string, string> | undefined)?.icon ?? undefined,
+              })),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Tink API error, falling back:", err);
+    }
+  }
+
+  // Try live GoCardless/Nordigen API if configured (fallback)
   if (provider === "nordigen" && process.env.NORDIGEN_SECRET_ID && process.env.NORDIGEN_SECRET_KEY) {
     try {
       // Get access token

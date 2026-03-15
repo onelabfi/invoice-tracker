@@ -18,9 +18,16 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply text-gray-900 antialiased;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: #e5e7eb;
+  }
+
+  @media (max-width: 767px) {
+    body {
+      background: #f9fafb;
+    }
   }
 
   * {
@@ -86,8 +93,15 @@
   }
 
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50;
+    @apply absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50;
     padding-bottom: var(--safe-area-bottom);
+  }
+
+  /* On mobile devices, use fixed positioning */
+  @media (max-width: 767px) {
+    .bottom-nav {
+      @apply fixed;
+    }
   }
 
   .tab-active {

@@ -27,8 +27,15 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen font-['Inter',system-ui,sans-serif]">
-        {children}
+      <body className="min-h-screen font-['Inter',system-ui,sans-serif] bg-gray-200">
+        {/* Mobile phone frame on desktop */}
+        <div className="mx-auto max-w-[430px] min-h-screen bg-gray-50 relative shadow-2xl md:my-4 md:rounded-[2.5rem] md:min-h-[calc(100vh-2rem)] md:border md:border-gray-300 md:overflow-hidden">
+          {/* Notch */}
+          <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[28px] bg-gray-200 rounded-b-2xl z-[60]" />
+          <div className="relative min-h-screen md:min-h-[calc(100vh-2rem)]">
+            {children}
+          </div>
+        </div>
       </body>
     </html>
   );

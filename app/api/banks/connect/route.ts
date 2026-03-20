@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       institutionId: string;
       institutionName: string;
       country: string;
-      provider: "nordigen" | "tink" | "plaid" | "csv";
+      provider: "nordigen" | "tink" | "plaid" | "csv" | "truelayer";
       iban?: string;
     };
 
@@ -253,6 +253,47 @@ export async function POST(request: NextRequest) {
         });
       } catch (err) {
         console.error("Plaid connection error:", err);
+        // Fall through to demo mode
+      }
+    }
+
+    // For TrueLayer (European Open Banking — Data API only)
+    if (
+      provider === "truelayer" &&
+      process.env.TRUELAYER_CLIENT_ID
+    ) {
+      try {
+        const origin = request.nextUrl.origin;
+        const redirectUri = `${origin}/api/banks/truelayer/callback`;
+
+        const params = new URLSearchParams({
+          response_type: "code",
+          client_id: process.env.TRUELAYER_CLIENT_ID,
+          scope: "info accounts balance transactions",
+          redirect_uri: redirectUri,
+          providers: "mock",
+        });
+
+        const authUrl = `https://auth.truelayer-sandbox.com/?${params}`;
+
+        const connection = await prisma.bankConnection.create({
+          data: {
+            bankName: institutionName,
+            accountName: iban || null,
+            country,
+            provider: "truelayer",
+            institutionId: institutionId || null,
+            status: "pending",
+          },
+        });
+
+        return NextResponse.json({
+          connection,
+          authUrl,
+          provider: "truelayer",
+        });
+      } catch (err) {
+        console.error("TrueLayer connection error:", err);
         // Fall through to demo mode
       }
     }

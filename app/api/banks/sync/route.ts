@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
           accountName:       { not: null as null },
           accountExternalId: { not: null as null },
         },
+        {
+          provider: "truelayer",
+          accountExternalId: { not: null as null },
+        },
       ],
     };
 
@@ -344,6 +348,80 @@ export async function POST(request: NextRequest) {
           results[conn.id] = { status: "ok", newTransactions: transactionCount };
         } catch (err) {
           console.error(`[sync] Tink error for "${conn.bankName}":`, err);
+          results[conn.id] = { status: "error", newTransactions: 0, error: String(err) };
+          continue;
+        }
+      }
+
+      // ── TrueLayer ────────────────────────────────────────────────────
+      if (conn.provider === "truelayer" && conn.accessToken && conn.accountExternalId) {
+        try {
+          const headers = { Authorization: `Bearer ${conn.accessToken}` };
+
+          const txnRes = await fetch(
+            `https://api.truelayer-sandbox.com/data/v1/accounts/${conn.accountExternalId}/transactions`,
+            { headers }
+          );
+
+          if (!txnRes.ok) {
+            const errText = await txnRes.text();
+            console.error(`[sync] TrueLayer transactions failed: ${txnRes.status} ${errText}`);
+            results[conn.id] = { status: "error", newTransactions: 0, error: `transactions ${txnRes.status}` };
+            continue;
+          }
+
+          const txnData = await txnRes.json();
+          const transactions: Array<Record<string, unknown>> = txnData.results ?? [];
+
+          console.log(`[sync]   ${transactions.length} transaction(s) from TrueLayer`);
+
+          for (const txn of transactions) {
+            const amount = Math.abs(txn.amount as number);
+            const dateStr = (txn.timestamp as string) ?? new Date().toISOString();
+            const merchant =
+              (txn.merchant_name as string) ??
+              (txn.description as string) ??
+              "Unknown";
+            const reference = (txn.transaction_id as string) ?? null;
+
+            // Dedup
+            const existing = await prisma.transaction.findFirst({
+              where: {
+                connectionId: conn.id,
+                amount,
+                date: new Date(dateStr),
+                merchant,
+              },
+            });
+
+            if (!existing) {
+              await prisma.transaction.create({
+                data: {
+                  merchant,
+                  amount,
+                  reference,
+                  description: (txn.description as string) ?? null,
+                  date: new Date(dateStr),
+                  bankAccount: conn.accountName ?? conn.bankName,
+                  connectionId: conn.id,
+                  rawData: JSON.stringify(txn),
+                },
+              });
+              transactionCount++;
+            }
+          }
+
+          await prisma.bankConnection.update({
+            where: { id: conn.id },
+            data: { lastSynced: new Date() },
+          });
+
+          console.log(
+            `[sync] Done TrueLayer "${conn.bankName}": ${transactionCount} new transaction(s)`
+          );
+          results[conn.id] = { status: "ok", newTransactions: transactionCount };
+        } catch (err) {
+          console.error(`[sync] TrueLayer error for "${conn.bankName}":`, err);
           results[conn.id] = { status: "error", newTransactions: 0, error: String(err) };
           continue;
         }

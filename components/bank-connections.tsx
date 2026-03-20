@@ -510,23 +510,27 @@ export function BankConnections() {
   }
 
   // -- DEFAULT VIEW (idle) --
-  return (
-    <div className="space-y-4 p-4">
-      {/* Sync Button */}
-      <button
-        onClick={handleSyncTransactions}
-        disabled={syncing || connections.length === 0}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-50 py-3 text-sm font-semibold text-[#152d4a] hover:bg-blue-100 transition-colors min-h-[48px] disabled:opacity-50"
-      >
-        <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-        {syncing ? t("syncing") : t("sync_transactions")}
-      </button>
+  // Find most recent sync time across all connections
+  const latestSync = connections.reduce((latest, c) => {
+    if (!c.lastSynced) return latest;
+    if (!latest) return c.lastSynced;
+    return new Date(c.lastSynced) > new Date(latest) ? c.lastSynced : latest;
+  }, null as string | null);
 
+  return (
+    <div className="space-y-3 p-4">
       {syncMessage && (
         <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3">
           <CheckCircle className="h-4 w-4" />
           {syncMessage}
         </div>
+      )}
+
+      {/* Last synced status */}
+      {latestSync && (
+        <p className="text-xs text-gray-400 px-1">
+          Last synced: {timeAgo(latestSync)}
+        </p>
       )}
 
       {/* Connected Banks */}
@@ -549,14 +553,10 @@ export function BankConnections() {
                   <p className="text-sm font-semibold text-gray-900">{conn.bankName}</p>
                   {conn.accountName ? (
                     <p className="text-xs text-gray-500 font-mono tracking-wider">
-                      {/* Show IBAN in groups of 4 for readability */}
                       {conn.accountName.replace(/(.{4})/g, "$1 ").trim()}
                     </p>
                   ) : (
                     <p className="text-xs text-gray-400 italic">{t("main_account")}</p>
-                  )}
-                  {conn.provider && conn.provider !== "manual" && (
-                    <span className="text-[10px] text-gray-400 uppercase">{conn.provider}</span>
                   )}
                 </div>
               </div>
@@ -564,9 +564,6 @@ export function BankConnections() {
                 <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                   {conn.status}
                 </span>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  {t("last_synced")} {timeAgo(conn.lastSynced)}
-                </p>
               </div>
             </div>
           ))}
@@ -583,87 +580,6 @@ export function BankConnections() {
         <Plus className="h-4 w-4" />
         {t("add_bank_connection")}
       </button>
-
-      {/* Upload Bank Statement (general CSV) */}
-      <div className="rounded-xl bg-gray-50 p-4">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          {t("upload_bank_statement")}
-        </p>
-        <p className="text-xs text-gray-400 mb-3">
-          {t("csv_format_hint")}
-        </p>
-        <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 py-4 cursor-pointer hover:border-[#1e3a5f] transition-colors min-h-[48px]">
-          {importing ? (
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-          ) : (
-            <Upload className="h-4 w-4 text-gray-400" />
-          )}
-          <span className="text-sm text-gray-500">
-            {importing ? t("importing") : t("choose_csv_file")}
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleCSVUpload}
-            className="hidden"
-            disabled={importing}
-          />
-        </label>
-        {importedCount !== null && (
-          <div className="flex items-center gap-2 mt-3 text-sm text-emerald-600">
-            <CheckCircle className="h-4 w-4" />
-            {importedCount} {t("transactions_imported")}
-          </div>
-        )}
-      </div>
-
-      {/* Match Payments */}
-      <div className="rounded-xl bg-gray-50 p-4">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          {t("match_payments")}
-        </p>
-        <p className="text-xs text-gray-400 mb-3">
-          {t("match_payments_desc")}
-        </p>
-        <button
-          onClick={handleRunMatching}
-          disabled={matching}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white hover:bg-slate-700 transition-colors min-h-[48px] disabled:opacity-50"
-        >
-          {matching ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              {t("matching")}
-            </>
-          ) : (
-            <>
-              <Zap className="h-4 w-4" />
-              {t("match_payments")}
-            </>
-          )}
-        </button>
-        {matchResults && (
-          <div className="mt-3 space-y-1.5">
-            <div className="flex items-center gap-2 text-sm text-emerald-600">
-              <CheckCircle className="h-3.5 w-3.5" />
-              {matchResults.matchesFound} {t("invoices_matched")}
-            </div>
-            {matchResults.invoicesUpdated > 0 && (
-              <div className="flex items-center gap-2 text-sm text-[#1e3a5f]">
-                <CheckCircle className="h-3.5 w-3.5" />
-                {matchResults.invoicesUpdated} {t("auto_marked_paid")}
-              </div>
-            )}
-            {matchResults.possibleMatches > 0 && (
-              <div className="flex items-center gap-2 text-sm text-amber-600">
-                <RefreshCw className="h-3.5 w-3.5" />
-                {matchResults.possibleMatches} {t("possibly_matched")}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

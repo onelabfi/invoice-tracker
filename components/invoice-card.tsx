@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import {
   CheckCircle,
@@ -8,6 +9,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   CreditCard,
   Bell,
   Copy,
@@ -66,6 +68,7 @@ export function InvoiceCard({
 }: InvoiceCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { t } = useTranslation();
+  const router = useRouter();
 
   const displayStatus =
     invoice.status === "unpaid" && isOverdue(invoice.dueDate, invoice.status)
@@ -141,6 +144,20 @@ export function InvoiceCard({
               <StatusBadge status={displayStatus} />
             </div>
           </div>
+
+          {/* Resolve button for unpaid/overdue invoices */}
+          {invoice.status !== "paid" && invoice.status !== "duplicate" && invoice.status !== "ignored" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/resolve/${invoice.id}`);
+              }}
+              className="mt-2 flex items-center justify-between w-full rounded-xl bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 px-3 py-2.5 transition-colors group"
+            >
+              <span className="text-sm font-semibold text-[#1e3a5f]">Resolve</span>
+              <ChevronRight className="h-4 w-4 text-[#1e3a5f] group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
 
           {/* Reminders count */}
           {invoice.reminders && invoice.reminders.length > 0 && (
@@ -261,19 +278,17 @@ export function InvoiceCard({
 
               {/* Action buttons */}
               <div className="flex gap-2">
-                {invoice.status !== "paid" && (
+                {invoice.status !== "paid" && invoice.status !== "ignored" && (
                   <>
                     <button
-                      onClick={() =>
-                        window.open(
-                          `https://pay.example.com?iban=${invoice.iban || ""}&amount=${invoice.amount}&ref=${invoice.reference || ""}`,
-                          "_blank"
-                        )
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/resolve/${invoice.id}`);
+                      }}
                       className="btn-primary flex-1 py-2.5 text-xs"
                     >
                       <CreditCard className="h-3.5 w-3.5" />
-                      {t("pay")}
+                      Resolve
                     </button>
                     <button
                       onClick={() => onMarkPaid(invoice.id)}
@@ -281,12 +296,6 @@ export function InvoiceCard({
                     >
                       <CheckCircle className="h-3.5 w-3.5" />
                       {t("mark_paid")}
-                    </button>
-                    <button
-                      onClick={() => {}}
-                      className="btn-secondary py-2.5 text-xs px-3"
-                    >
-                      <Bell className="h-3.5 w-3.5" />
                     </button>
                   </>
                 )}

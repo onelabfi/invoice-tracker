@@ -41,15 +41,16 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isPublicPage = pathname === "/";
 
   // Unauthenticated user trying to access a protected page → /login
-  if (!user && !isAuthPage) {
+  if (!user && !isAuthPage && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Authenticated user trying to access login/signup → /
+  // Authenticated user trying to access login/signup → /app
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/app", request.url));
   }
 
   return response;

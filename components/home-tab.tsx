@@ -13,6 +13,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
+import { AppHeader } from "./app-header";
 
 interface Invoice {
   id: string;
@@ -62,6 +64,7 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: HomeTabProps) {
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -89,8 +92,8 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
         alerts.push({
           id: `dup-${tx.id}`,
           type: "duplicate",
-          title: `${formatCurrency(tx.amount)} duplicate charge detected`,
-          detail: `${tx.merchant} charged twice in ${Math.round(daysDiff)} days`,
+          title: t("home_duplicate_charge", { amount: formatCurrency(tx.amount) }),
+          detail: t("home_charged_twice", { merchant: tx.merchant, days: String(Math.round(daysDiff)) }),
           amount: tx.amount,
         });
         break;
@@ -112,11 +115,11 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
       id: "overdue",
       type: "overdue",
       title: overdueInvoices.length === 1
-        ? `${formatCurrency(topOverdue.amount)} overdue to ${topOverdue.vendor}`
-        : `${overdueInvoices.length} invoices overdue (${formatCurrency(overdueInvoices.reduce((s, i) => s + i.amount, 0))})`,
+        ? t("home_overdue_single", { amount: formatCurrency(topOverdue.amount), vendor: topOverdue.vendor })
+        : t("home_overdue_multi", { count: String(overdueInvoices.length), amount: formatCurrency(overdueInvoices.reduce((s, i) => s + i.amount, 0)) }),
       detail: overdueInvoices.length === 1
-        ? `Due ${daysOverdue} days ago \u2014 no matching payment found`
-        : `Oldest is ${daysOverdue} days past due`,
+        ? t("home_due_days_ago", { days: String(daysOverdue) })
+        : t("home_oldest_past_due", { days: String(daysOverdue) }),
       amount: overdueInvoices.reduce((s, i) => s + i.amount, 0),
       invoiceId: overdueInvoices.length === 1 ? topOverdue.id : undefined,
     });
@@ -127,9 +130,9 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
         id: "unpaid",
         type: "unpaid",
         title: unmatched.length === 1
-          ? `${formatCurrency(unmatched[0].amount)} to ${unmatched[0].vendor} likely unpaid`
-          : `${unmatched.length} invoices likely unpaid`,
-        detail: "No matching bank transaction detected",
+          ? t("home_likely_unpaid_single", { amount: formatCurrency(unmatched[0].amount), vendor: unmatched[0].vendor })
+          : t("home_likely_unpaid_multi", { count: String(unmatched.length) }),
+        detail: t("home_no_matching_tx"),
         amount: unmatched.reduce((s, i) => s + i.amount, 0),
         invoiceId: unmatched.length === 1 ? unmatched[0].id : undefined,
       });
@@ -169,10 +172,10 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
     alerts.push({
       id: "spike",
       type: "spike",
-      title: `${formatCurrency(spikeTotal)} subscription increase`,
+      title: t("home_subscription_increase", { amount: formatCurrency(spikeTotal) }),
       detail: spikeCount === 1
-        ? `${spikeName} price changed this month`
-        : `${spikeCount} subscriptions increased this month`,
+        ? t("home_price_changed", { merchant: spikeName })
+        : t("home_subs_increased", { count: String(spikeCount) }),
       amount: spikeTotal,
     });
   }
@@ -207,7 +210,7 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
     const d = new Date(thisYear, thisMonth - i, 1);
     const m = d.getMonth();
     const y = d.getFullYear();
-    const label = d.toLocaleString("en", { month: "short" });
+    const label = d.toLocaleString(locale === "en" ? "en" : locale, { month: "short" });
     const total = transactions
       .filter((tx) => {
         const td = new Date(tx.date);
@@ -232,14 +235,14 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
     <div className="safe-bottom px-4 pt-6 pb-4">
       {/* Greeting */}
       <div className="mb-5">
-        <div className="flex items-center gap-2 mb-1">
-          <img src="/ricordo-logo1.png" alt="Ricordo" className="h-6 w-auto" />
+        <div className="mb-1">
+          <AppHeader />
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900">{greeting}, Max</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {alerts.length > 0
-            ? "Here\u2019s what needs your attention"
-            : "Your finances look healthy"}
+            ? t("home_needs_attention")
+            : t("home_finances_healthy")}
         </p>
       </div>
 
@@ -251,7 +254,7 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
               <AlertTriangle className="h-4 w-4 text-red-600" />
             </div>
             <span className="text-xs font-bold text-red-800 uppercase tracking-wide">
-              Needs attention
+              {t("home_attention_label")}
             </span>
           </div>
           <div className="space-y-3">
@@ -292,8 +295,8 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
               <Zap className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">All clear</p>
-              <p className="text-xs text-gray-500">No issues detected. Everything is on track.</p>
+              <p className="text-sm font-semibold text-gray-900">{t("home_all_clear")}</p>
+              <p className="text-xs text-gray-500">{t("home_no_issues")}</p>
             </div>
           </div>
         </div>
@@ -308,16 +311,16 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">
-                You can save ~{formatCurrency(potentialSavings)}/month
+                {t("home_can_save", { amount: formatCurrency(potentialSavings) })}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Based on {recurringMerchants.size} recurring subscriptions
+                {t("home_based_on_subs", { count: String(recurringMerchants.size) })}
               </p>
               <button
                 onClick={() => onNavigateTab("transactions")}
                 className="mt-2 text-xs font-semibold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-200 transition-colors inline-flex items-center gap-1"
               >
-                Review savings
+                {t("home_review_savings")}
                 <ChevronRight className="h-3 w-3" />
               </button>
             </div>
@@ -328,23 +331,23 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
       {/* Spending Summary — compact */}
       <div className="mb-4">
         <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-          This month
+          {t("this_month")}
         </h2>
         <div className="flex gap-2">
           <div className="flex-1 rounded-xl bg-gray-50 p-2.5 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Spent</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">{t("home_spent")}</p>
             <p className="text-sm font-extrabold text-gray-900">
               {loadingTx ? <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-300 mx-auto" /> : formatCurrency(totalSpent)}
             </p>
           </div>
           <div className="flex-1 rounded-xl bg-gray-50 p-2.5 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Recurring</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">{t("home_recurring")}</p>
             <p className="text-sm font-extrabold text-gray-900">
               {loadingTx ? <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-300 mx-auto" /> : formatCurrency(recurringSpent)}
             </p>
           </div>
           <div className="flex-1 rounded-xl bg-gray-50 p-2.5 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Unpaid</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">{t("home_unpaid")}</p>
             <p className="text-sm font-extrabold text-gray-900">
               {formatCurrency(unpaidInvoices.reduce((s, i) => s + i.amount, 0))}
             </p>
@@ -377,8 +380,8 @@ export function HomeTab({ invoices, onSelectInvoice, onNavigateTab, greeting }: 
           <div className="flex items-center gap-2">
             <Zap className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
             <p className="text-xs text-gray-600">
-              <span className="font-semibold">Prediction:</span>{" "}
-              {formatCurrency(unpaidInvoices.reduce((s, i) => s + i.amount, 0))} in upcoming invoices may impact your balance this week
+              <span className="font-semibold">{t("home_prediction")}</span>{" "}
+              {t("home_upcoming_impact", { amount: formatCurrency(unpaidInvoices.reduce((s, i) => s + i.amount, 0)) })}
             </p>
           </div>
         </div>

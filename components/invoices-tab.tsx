@@ -11,6 +11,7 @@ import {
 import { InvoiceCard } from "./invoice-card";
 import { formatCurrency, isDueSoon, isOverdue, formatRelativeDate } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { AppHeader } from "./app-header";
 
 interface Invoice {
   id: string;
@@ -101,14 +102,15 @@ export function InvoicesTab({
     <div className="safe-bottom">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-lg border-b border-gray-100 px-4 pt-5 pb-3">
+        <div className="mb-2"><AppHeader /></div>
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-extrabold text-gray-900">Invoices</h1>
+          <h1 className="text-xl font-extrabold text-gray-900">{t("invoices_header")}</h1>
           <button
             onClick={() => onUpload("file")}
             className="flex items-center gap-1.5 rounded-xl bg-[#1e3a5f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#152d4a] transition-colors min-h-[36px]"
           >
             <Plus className="h-4 w-4" />
-            Add invoice
+            {t("add_invoice")}
           </button>
         </div>
 
@@ -119,7 +121,7 @@ export function InvoicesTab({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Ask Ricordo... &quot;Show unpaid invoices&quot;"
+            placeholder={t("invoices_ask_placeholder")}
             className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:bg-white focus:border-[#1e3a5f] border border-transparent transition-all"
           />
         </div>
@@ -133,7 +135,7 @@ export function InvoicesTab({
               { key: "paid" as FilterStatus, label: t("filter_paid"), count: invoices.filter((i) => i.status === "paid").length },
               { key: "due-soon" as FilterStatus, label: t("filter_due_soon"), count: dueThisWeek.length + overdueInvoices.length },
               { key: "duplicate" as FilterStatus, label: t("filter_duplicates"), count: duplicates.length },
-              ...(ignoredInvoices.length > 0 ? [{ key: "ignored" as FilterStatus, label: "Ignored", count: ignoredInvoices.length }] : []),
+              ...(ignoredInvoices.length > 0 ? [{ key: "ignored" as FilterStatus, label: t("filter_ignored"), count: ignoredInvoices.length }] : []),
             ]
           ).map((pill) => (
             <button
@@ -191,7 +193,7 @@ export function InvoicesTab({
             {filter === "all" && !searchQuery && (
               <button onClick={() => onUpload("file")} className="btn-primary">
                 <Plus className="h-4 w-4" />
-                Add invoice
+                {t("add_invoice")}
               </button>
             )}
           </div>

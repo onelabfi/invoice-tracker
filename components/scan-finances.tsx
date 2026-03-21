@@ -103,23 +103,25 @@ function formatDate(iso: string) {
   });
 }
 
-const STEPS = [
-  { key: "connecting", label: "Connecting to your bank…" },
-  { key: "analyzing", label: "Matching invoices to payments…" },
-  { key: "done", label: "Reconciliation complete" },
-] as const;
+const STEP_KEYS = ["connecting", "analyzing", "done"] as const;
+const STEP_LABEL_KEYS: Record<string, string> = {
+  connecting: "scan_step_connecting",
+  analyzing: "scan_step_analyzing",
+  done: "scan_step_done",
+};
 
-function StepIndicator({ current }: { current: string }) {
-  const stepIndex = STEPS.findIndex((s) => s.key === current);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function StepIndicator({ current, t }: { current: string; t: (key: any, vars?: Record<string, string | number>) => string }) {
+  const stepIndex = STEP_KEYS.findIndex((s) => s === current);
 
   return (
     <div className="space-y-3">
-      {STEPS.map((step, i) => {
-        const isActive = step.key === current;
+      {STEP_KEYS.map((stepKey, i) => {
+        const isActive = stepKey === current;
         const isDone = i < stepIndex || current === "done";
 
         return (
-          <div key={step.key} className="flex items-center gap-3">
+          <div key={stepKey} className="flex items-center gap-3">
             <div
               className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
                 isDone
@@ -146,7 +148,7 @@ function StepIndicator({ current }: { current: string }) {
                     : "text-gray-400"
               }`}
             >
-              {step.label}
+              {t(STEP_LABEL_KEYS[stepKey])}
             </span>
           </div>
         );
@@ -266,7 +268,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
           <button onClick={onBack} className="p-1 text-gray-400 hover:text-gray-600">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <p className="text-sm font-semibold text-gray-900">Scan Finances</p>
+          <p className="text-sm font-semibold text-gray-900">{t("scan_finances")}</p>
         </div>
 
         <div className="flex flex-col items-center py-8 gap-5">
@@ -275,11 +277,10 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
           </div>
           <div className="text-center max-w-xs">
             <h2 className="text-base font-semibold text-gray-900 mb-1">
-              Scan my finances
+              {t("scan_my_finances")}
             </h2>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Connect your bank to automatically match payments to invoices,
-              detect what&apos;s paid, and find what&apos;s still outstanding.
+              {t("scan_description")}
             </p>
           </div>
           <button
@@ -287,12 +288,12 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
             className="flex items-center justify-center gap-2 rounded-xl bg-[#1e3a5f] py-3 px-8 text-sm font-semibold text-white hover:bg-[#152d4a] transition-colors min-h-[48px]"
           >
             <ScanSearch className="h-4 w-4" />
-            Start scan
+            {t("scan_start")}
             <ArrowRight className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
             <Shield className="h-3 w-3" />
-            Secured by TrueLayer · PSD2 compliant · Read-only access
+            {t("scan_secured_by")}
           </div>
         </div>
       </div>
@@ -304,10 +305,10 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
     return (
       <div className="p-4">
         <div className="flex items-center gap-2 mb-6">
-          <p className="text-sm font-semibold text-gray-900">Scanning…</p>
+          <p className="text-sm font-semibold text-gray-900">{t("scan_scanning")}</p>
         </div>
         <div className="flex flex-col items-center py-10 gap-6">
-          <StepIndicator current={step} />
+          <StepIndicator current={step} t={t} />
         </div>
       </div>
     );
@@ -321,14 +322,14 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
           <button onClick={onBack} className="p-1 text-gray-400 hover:text-gray-600">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <p className="text-sm font-semibold text-gray-900">Scan Finances</p>
+          <p className="text-sm font-semibold text-gray-900">{t("scan_finances")}</p>
         </div>
         <div className="flex flex-col items-center py-8 gap-4">
           <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center">
             <AlertCircle className="h-7 w-7 text-red-500" />
           </div>
           <div className="text-center">
-            <p className="text-base font-semibold text-gray-900 mb-1">Scan failed</p>
+            <p className="text-base font-semibold text-gray-900 mb-1">{t("scan_failed")}</p>
             <p className="text-sm text-gray-500">{error}</p>
           </div>
           <button
@@ -336,7 +337,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
             className="flex items-center gap-2 rounded-xl bg-gray-100 py-2.5 px-6 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors min-h-[44px]"
           >
             <RefreshCw className="h-4 w-4" />
-            Try again
+            {t("try_again")}
           </button>
         </div>
       </div>
@@ -354,14 +355,14 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
           <button onClick={onBack} className="p-1 text-gray-400 hover:text-gray-600">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <p className="text-sm font-semibold text-gray-900">Scan Results</p>
+          <p className="text-sm font-semibold text-gray-900">{t("scan_results")}</p>
         </div>
         <button
           onClick={handleReset}
           className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
         >
           <RefreshCw className="h-3 w-3" />
-          Rescan
+          {t("scan_rescan")}
         </button>
       </div>
 
@@ -369,18 +370,18 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
         <>
           {/* Hero stats */}
           <div className="text-center py-2">
-            <StepIndicator current="done" />
+            <StepIndicator current="done" t={t} />
             <p className="text-lg font-bold text-gray-900 mt-4">
-              {result.transaction_count} transactions scanned
+              {t("scan_tx_scanned", { count: String(result.transaction_count) })}
             </p>
             {recon && recon.total_invoices_checked > 0 && (
               <p className="text-xs text-gray-500 mt-0.5">
-                {recon.matched.length} matched · {recon.possible.length} possible · {recon.unmatched.length} unmatched
+                {recon.matched.length} {t("scan_matched")} · {recon.possible.length} {t("scan_possible")} · {recon.unmatched.length} {t("scan_unmatched")}
               </p>
             )}
             {recon && recon.total_invoices_checked === 0 && (
               <p className="text-xs text-gray-500 mt-0.5">
-                No unpaid invoices to reconcile
+                {t("scan_no_unpaid")}
               </p>
             )}
           </div>
@@ -390,21 +391,21 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl bg-emerald-50 p-3 text-center">
                 <FileCheck className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
-                <p className="text-[10px] text-gray-500 uppercase">Paid</p>
+                <p className="text-[10px] text-gray-500 uppercase">{t("scan_paid")}</p>
                 <p className="text-sm font-bold text-gray-900">
                   {recon.matched.length}
                 </p>
               </div>
               <div className="rounded-xl bg-amber-50 p-3 text-center">
                 <FileQuestion className="h-4 w-4 text-amber-500 mx-auto mb-1" />
-                <p className="text-[10px] text-gray-500 uppercase">Maybe</p>
+                <p className="text-[10px] text-gray-500 uppercase">{t("scan_maybe")}</p>
                 <p className="text-sm font-bold text-gray-900">
                   {recon.possible.length}
                 </p>
               </div>
               <div className="rounded-xl bg-red-50 p-3 text-center">
                 <FileX className="h-4 w-4 text-red-400 mx-auto mb-1" />
-                <p className="text-[10px] text-gray-500 uppercase">Unpaid</p>
+                <p className="text-[10px] text-gray-500 uppercase">{t("scan_unpaid_label")}</p>
                 <p className="text-sm font-bold text-gray-900">
                   {recon.unmatched.length}
                 </p>
@@ -417,8 +418,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 p-3">
               <CircleCheck className="h-4 w-4 text-emerald-500 shrink-0" />
               <p className="text-xs text-emerald-700">
-                <span className="font-semibold">{recon.auto_marked_paid}</span> invoice{recon.auto_marked_paid !== 1 ? "s" : ""} auto-marked
-                as paid (high-confidence match)
+                {t("scan_auto_marked", { count: String(recon.auto_marked_paid) })}
               </p>
             </div>
           )}
@@ -433,7 +433,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
                   : "text-gray-500"
               }`}
             >
-              Invoices
+              {t("scan_invoices_tab")}
             </button>
             <button
               onClick={() => setActiveTab("spending")}
@@ -443,7 +443,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
                   : "text-gray-500"
               }`}
             >
-              Spending
+              {t("scan_spending_tab")}
             </button>
           </div>
 
@@ -454,7 +454,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {recon.matched.length > 0 && (
                 <div className="rounded-xl bg-gray-50 p-4">
                   <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-3">
-                    Confirmed Paid
+                    {t("scan_confirmed_paid")}
                   </p>
                   <div className="space-y-3">
                     {recon.matched.map((m) => (
@@ -464,7 +464,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
                           <div className="min-w-0">
                             <p className="text-sm text-gray-900 truncate">{m.vendor}</p>
                             <p className="text-[10px] text-gray-400">
-                              Matched to {m.transactionMerchant} · {formatDate(m.transactionDate)}
+                              {t("scan_matched_to", { merchant: m.transactionMerchant, date: formatDate(m.transactionDate) })}
                             </p>
                           </div>
                         </div>
@@ -484,7 +484,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {recon.possible.length > 0 && (
                 <div className="rounded-xl bg-gray-50 p-4">
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-3">
-                    Needs Review
+                    {t("scan_needs_review")}
                   </p>
                   <div className="space-y-3">
                     {recon.possible.map((m) => (
@@ -494,7 +494,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
                           <div className="min-w-0">
                             <p className="text-sm text-gray-900 truncate">{m.vendor}</p>
                             <p className="text-[10px] text-gray-400">
-                              Possible: {m.transactionMerchant} · {formatDate(m.transactionDate)}
+                              {t("scan_possible_match", { merchant: m.transactionMerchant, date: formatDate(m.transactionDate) })}
                             </p>
                           </div>
                         </div>
@@ -514,7 +514,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {recon.unmatched.length > 0 && (
                 <div className="rounded-xl bg-gray-50 p-4">
                   <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-3">
-                    No Payment Found
+                    {t("scan_no_payment")}
                   </p>
                   <div className="space-y-3">
                     {recon.unmatched.map((inv) => (
@@ -527,10 +527,10 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
                               {inv.dueDate ? (
                                 <>
                                   <Clock className="inline h-2.5 w-2.5 mr-0.5" />
-                                  Due {formatDate(inv.dueDate)}
+                                  {t("scan_due", { date: formatDate(inv.dueDate) })}
                                 </>
                               ) : (
-                                inv.status === "overdue" ? "Overdue" : "No due date"
+                                inv.status === "overdue" ? t("scan_overdue") : t("scan_no_due_date")
                               )}
                             </p>
                           </div>
@@ -548,7 +548,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {recon.total_invoices_checked === 0 && (
                 <div className="flex flex-col items-center py-6 gap-2">
                   <CheckCircle className="h-8 w-8 text-emerald-400" />
-                  <p className="text-sm text-gray-500">All invoices are already paid</p>
+                  <p className="text-sm text-gray-500">{t("scan_all_paid")}</p>
                 </div>
               )}
             </>
@@ -561,21 +561,21 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-xl bg-gray-50 p-3 text-center">
                   <TrendingDown className="h-4 w-4 text-red-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-gray-500 uppercase">Spend</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t("scan_spend")}</p>
                   <p className="text-sm font-bold text-gray-900">
                     {formatCurrency(result.summary.total_spend)}
                   </p>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-3 text-center">
                   <Repeat className="h-4 w-4 text-amber-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-gray-500 uppercase">Recurring</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t("home_recurring")}</p>
                   <p className="text-sm font-bold text-gray-900">
                     {formatCurrency(result.summary.recurring_spend)}
                   </p>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-3 text-center">
                   <Repeat className="h-4 w-4 text-blue-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-gray-500 uppercase">Subs</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t("tx_subs")}</p>
                   <p className="text-sm font-bold text-gray-900">
                     {result.summary.recurring_payments.length}
                   </p>
@@ -586,7 +586,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {result.summary.recurring_payments.length > 0 && (
                 <div className="rounded-xl bg-gray-50 p-4">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">
-                    Recurring Payments
+                    {t("scan_recurring_payments")}
                   </p>
                   <div className="space-y-2.5">
                     {result.summary.recurring_payments.map((r) => (
@@ -609,7 +609,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
               {result.summary.top_merchants.length > 0 && (
                 <div className="rounded-xl bg-gray-50 p-4">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">
-                    Top Merchants
+                    {t("scan_top_merchants")}
                   </p>
                   <div className="space-y-2.5">
                     {result.summary.top_merchants.map((m) => (
@@ -633,7 +633,7 @@ export function ScanFinances({ onBack }: { onBack: () => void }) {
           {result.accounts.length > 0 && (
             <div className="rounded-xl bg-gray-50 p-4">
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">
-                Connected Accounts
+                {t("scan_connected_accounts")}
               </p>
               <div className="space-y-2">
                 {result.accounts.map((a) => (

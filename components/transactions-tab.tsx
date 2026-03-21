@@ -10,6 +10,8 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
+import { AppHeader } from "./app-header";
 
 interface Transaction {
   id: string;
@@ -50,6 +52,7 @@ function categoryColor(cat: string): string {
 }
 
 export function TransactionsTab() {
+  const { t } = useTranslation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TxFilter>("all");
@@ -133,7 +136,8 @@ export function TransactionsTab() {
     <div className="safe-bottom">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-lg border-b border-gray-100 px-4 pt-5 pb-3">
-        <h1 className="text-xl font-extrabold text-gray-900 mb-3">Transactions</h1>
+        <div className="mb-2"><AppHeader /></div>
+        <h1 className="text-xl font-extrabold text-gray-900 mb-3">{t("tx_header")}</h1>
 
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-2 mb-3">
@@ -142,28 +146,28 @@ export function TransactionsTab() {
             <p className="text-xs font-extrabold text-gray-900">
               {loading ? "..." : formatCurrency(totalSpent)}
             </p>
-            <p className="text-[9px] text-gray-400 uppercase font-semibold">Spent</p>
+            <p className="text-[9px] text-gray-400 uppercase font-semibold">{t("tx_spent")}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-2.5 text-center">
             <RefreshCcw className="h-3.5 w-3.5 text-gray-400 mx-auto mb-1" />
             <p className="text-xs font-extrabold text-gray-900">
               {loading ? "..." : formatCurrency(recurringSpent)}
             </p>
-            <p className="text-[9px] text-gray-400 uppercase font-semibold">Recurring</p>
+            <p className="text-[9px] text-gray-400 uppercase font-semibold">{t("tx_recurring")}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-2.5 text-center">
             <TrendingDown className="h-3.5 w-3.5 text-gray-400 mx-auto mb-1" />
             <p className="text-xs font-extrabold text-gray-900">
               {loading ? "..." : subscriptionCount}
             </p>
-            <p className="text-[9px] text-gray-400 uppercase font-semibold">Subs</p>
+            <p className="text-[9px] text-gray-400 uppercase font-semibold">{t("tx_subs")}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-2.5 text-center">
             <AlertTriangle className="h-3.5 w-3.5 text-gray-400 mx-auto mb-1" />
             <p className="text-xs font-extrabold text-gray-900">
               {loading ? "..." : suspicious.size}
             </p>
-            <p className="text-[9px] text-gray-400 uppercase font-semibold">Flagged</p>
+            <p className="text-[9px] text-gray-400 uppercase font-semibold">{t("tx_flagged")}</p>
           </div>
         </div>
 
@@ -174,7 +178,7 @@ export function TransactionsTab() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search transactions..."
+            placeholder={t("tx_search")}
             className="w-full rounded-xl bg-gray-100 pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:bg-white focus:border-[#1e3a5f] border border-transparent transition-all"
           />
         </div>
@@ -183,10 +187,10 @@ export function TransactionsTab() {
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {(
             [
-              { key: "all" as TxFilter, label: "All", count: thisMonthTx.length },
-              { key: "subscriptions" as TxFilter, label: "Subscriptions", count: thisMonthTx.filter((tx) => recurringMerchants.has(tx.merchant.toLowerCase())).length },
-              { key: "one-time" as TxFilter, label: "One-time", count: thisMonthTx.filter((tx) => !recurringMerchants.has(tx.merchant.toLowerCase())).length },
-              { key: "suspicious" as TxFilter, label: "Suspicious", count: thisMonthTx.filter((tx) => suspicious.has(tx.id)).length },
+              { key: "all" as TxFilter, label: t("tx_filter_all"), count: thisMonthTx.length },
+              { key: "subscriptions" as TxFilter, label: t("tx_filter_subscriptions"), count: thisMonthTx.filter((tx) => recurringMerchants.has(tx.merchant.toLowerCase())).length },
+              { key: "one-time" as TxFilter, label: t("tx_filter_onetime"), count: thisMonthTx.filter((tx) => !recurringMerchants.has(tx.merchant.toLowerCase())).length },
+              { key: "suspicious" as TxFilter, label: t("tx_filter_suspicious"), count: thisMonthTx.filter((tx) => suspicious.has(tx.id)).length },
             ]
           ).map((pill) => (
             <button
@@ -214,18 +218,18 @@ export function TransactionsTab() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f] mb-3" />
-            <p className="text-sm text-gray-500">Loading transactions...</p>
+            <p className="text-sm text-gray-500">{t("tx_loading")}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 mb-4">
               <CreditCard className="h-10 w-10 text-gray-300" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No transactions</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">{t("tx_no_transactions")}</h3>
             <p className="text-sm text-gray-500 text-center">
               {filter !== "all"
-                ? "No transactions match this filter."
-                : "Connect a bank account in Settings to see transactions."}
+                ? t("tx_no_filter_match")
+                : t("tx_connect_bank")}
             </p>
           </div>
         ) : (
@@ -259,12 +263,12 @@ export function TransactionsTab() {
                       </span>
                       {isRecurring && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">
-                          Subscription
+                          {t("tx_subscription")}
                         </span>
                       )}
                       {isSuspicious && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600">
-                          Suspicious
+                          {t("tx_suspicious")}
                         </span>
                       )}
                       <span className="text-[10px] text-gray-400">
@@ -285,7 +289,7 @@ export function TransactionsTab() {
                 onClick={() => setVisibleCount((c) => c + 15)}
                 className="w-full py-3 text-sm font-semibold text-[#1e3a5f] bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
               >
-                Load more ({filtered.length - visibleCount} remaining)
+                {t("tx_load_more", { count: String(filtered.length - visibleCount) })}
               </button>
             )}
           </div>

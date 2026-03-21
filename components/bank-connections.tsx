@@ -52,13 +52,19 @@ const COUNTRIES = [
 
 type WizardStep = "idle" | "country" | "bank" | "connecting" | "done";
 
-export function BankConnections() {
+interface BankConnectionsProps {
+  initialStep?: WizardStep;
+  onComplete?: () => void;
+  onSkip?: () => void;
+}
+
+export function BankConnections({ initialStep, onComplete, onSkip }: BankConnectionsProps = {}) {
   const { t } = useTranslation();
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Wizard state
-  const [wizardStep, setWizardStep] = useState<WizardStep>("idle");
+  const [wizardStep, setWizardStep] = useState<WizardStep>(initialStep || "idle");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loadingBanks, setLoadingBanks] = useState(false);
@@ -301,12 +307,12 @@ export function BankConnections() {
     if (!dateString) return "—";
     const diff = Date.now() - new Date(dateString).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t("bank_just_now");
+    if (mins < 60) return t("bank_mins_ago", { count: String(mins) });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return t("bank_hours_ago", { count: String(hours) });
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return t("bank_days_ago", { count: String(days) });
   }
 
   const filteredInstitutions = bankSearch.trim()
@@ -500,7 +506,7 @@ export function BankConnections() {
         <p className="text-base font-semibold text-gray-900">{t("bank_connected_title")}</p>
         <p className="text-sm text-gray-500 mt-1">{t("bank_connected_desc")}</p>
         <button
-          onClick={resetWizard}
+          onClick={() => { resetWizard(); onComplete?.(); }}
           className="mt-6 btn-primary px-8"
         >
           {t("done")}
@@ -529,7 +535,7 @@ export function BankConnections() {
       {/* Last synced status */}
       {latestSync && (
         <p className="text-xs text-gray-400 px-1">
-          Last synced: {timeAgo(latestSync)}
+          {t("bank_last_synced", { time: timeAgo(latestSync) })}
         </p>
       )}
 

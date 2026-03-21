@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslation } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,18 +30,18 @@ export default function LoginPage() {
       if (authError) {
         setError(
           authError.message === "Invalid login credentials"
-            ? "Incorrect email or password."
+            ? t("login_incorrect_credentials")
             : authError.message
         );
         return;
       }
 
       // Hard redirect ensures cookies are sent on the next full page load
-      window.location.href = "/";
+      window.location.href = "/app";
     } catch (err) {
       console.error("[Login] caught error:", err);
       setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
+        err instanceof Error ? err.message : t("login_generic_error")
       );
     } finally {
       setLoading(false);
@@ -57,7 +59,7 @@ export default function LoginPage() {
               alt="Ricordo"
               className="h-32 w-auto mb-2"
             />
-            <p className="text-sm text-gray-500 mt-1">Your AI payment memory</p>
+            <p className="text-sm text-gray-500 mt-1">{t("app_tagline")}</p>
           </div>
 
           {/* Form */}
@@ -69,7 +71,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                placeholder={t("login_email_placeholder")}
                 className="input-field pl-11"
                 autoComplete="email"
                 autoFocus
@@ -84,7 +86,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder={t("login_password_placeholder")}
                 className="input-field pl-11"
                 autoComplete="current-password"
                 required
@@ -108,22 +110,22 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Logging in…
+                  {t("login_logging_in")}
                 </>
               ) : (
-                "Log in"
+                t("login_log_in")
               )}
             </button>
           </form>
 
           {/* Signup link */}
           <p className="mt-5 text-center text-sm text-gray-500">
-            Don&apos;t have an account?{" "}
+            {t("login_no_account")}{" "}
             <Link
               href="/signup"
               className="font-semibold text-[#1e3a5f] hover:underline"
             >
-              Create account
+              {t("login_create_account")}
             </Link>
           </p>
         </div>

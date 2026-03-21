@@ -103,14 +103,14 @@ export function Dashboard() {
     const resolved = searchParams.get("resolved");
     if (resolved) {
       if (resolved === "paid") {
-        setToast({ message: "Invoice resolved — marked as paid", type: "success" });
+        setToast({ message: t("toast_resolved_paid"), type: "success" });
       } else if (resolved === "initiated") {
-        setToast({ message: "Payment initiated — we'll verify when it clears", type: "info" });
+        setToast({ message: t("toast_resolved_initiated"), type: "info" });
       } else if (resolved === "ignored") {
-        setToast({ message: "Invoice ignored", type: "neutral" });
+        setToast({ message: t("toast_resolved_ignored"), type: "neutral" });
       }
       // Clean URL
-      router.replace("/", { scroll: false });
+      router.replace("/app", { scroll: false });
       // Refresh data
       fetchInvoices();
     }
@@ -201,10 +201,10 @@ export function Dashboard() {
 
   // Tab navigation items
   const tabs = [
-    { id: "home" as TabId, icon: Home, label: "Home" },
-    { id: "invoices" as TabId, icon: FileText, label: "Invoices" },
-    { id: "transactions" as TabId, icon: CreditCard, label: "Transactions" },
-    { id: "settings" as TabId, icon: Settings, label: "Settings" },
+    { id: "home" as TabId, icon: Home, label: t("tab_home") },
+    { id: "invoices" as TabId, icon: FileText, label: t("tab_invoices") },
+    { id: "transactions" as TabId, icon: CreditCard, label: t("tab_transactions") },
+    { id: "settings" as TabId, icon: Settings, label: t("tab_settings") },
   ];
 
   return (

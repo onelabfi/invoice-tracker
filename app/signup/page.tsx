@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslation } from "@/lib/i18n";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -20,11 +22,11 @@ export default function SignupPage() {
     setError("");
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("signup_password_too_short"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(t("signup_passwords_mismatch"));
       return;
     }
 
@@ -44,7 +46,7 @@ export default function SignupPage() {
       // If Supabase requires email confirmation the session will be null
       if (data.session) {
         // Hard redirect ensures cookies are sent on the next full page load
-        window.location.href = "/";
+        window.location.href = "/app";
       } else {
         // Email confirmation required
         setSuccess(true);
@@ -52,7 +54,7 @@ export default function SignupPage() {
     } catch (err) {
       console.error("[Signup] caught error:", err);
       setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
+        err instanceof Error ? err.message : t("signup_generic_error")
       );
     } finally {
       setLoading(false);
@@ -69,18 +71,16 @@ export default function SignupPage() {
               <CheckCircle2 className="h-8 w-8 text-emerald-600" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Check your inbox
+              {t("signup_check_inbox")}
             </h2>
             <p className="text-sm text-gray-500 leading-relaxed">
-              We sent a confirmation link to{" "}
-              <span className="font-medium text-gray-800">{email}</span>.
-              Click it to activate your account.
+              {t("signup_confirmation_sent", { email })}
             </p>
             <Link
               href="/login"
               className="mt-6 text-sm font-semibold text-[#1e3a5f] hover:underline"
             >
-              Back to log in
+              {t("signup_back_to_login")}
             </Link>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function SignupPage() {
               alt="Ricordo"
               className="h-32 w-auto mb-2"
             />
-            <p className="text-sm text-gray-500 mt-1">Your AI payment memory</p>
+            <p className="text-sm text-gray-500 mt-1">{t("app_tagline")}</p>
           </div>
 
           {/* Form */}
@@ -111,7 +111,7 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                placeholder={t("login_email_placeholder")}
                 className="input-field pl-11"
                 autoComplete="email"
                 autoFocus
@@ -126,7 +126,7 @@ export default function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder={t("login_password_placeholder")}
                 className="input-field pl-11"
                 autoComplete="new-password"
                 required
@@ -140,7 +140,7 @@ export default function SignupPage() {
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Confirm password"
+                placeholder={t("signup_confirm_password")}
                 className="input-field pl-11"
                 autoComplete="new-password"
                 required
@@ -149,7 +149,7 @@ export default function SignupPage() {
 
             {/* Strength hint */}
             <p className="text-[11px] text-gray-400 px-1">
-              Minimum 8 characters
+              {t("signup_min_chars")}
             </p>
 
             {/* Error */}
@@ -169,22 +169,22 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating account…
+                  {t("signup_creating")}
                 </>
               ) : (
-                "Create account"
+                t("signup_create")
               )}
             </button>
           </form>
 
           {/* Login link */}
           <p className="mt-5 text-center text-sm text-gray-500">
-            Already have an account?{" "}
+            {t("signup_already_have_account")}{" "}
             <Link
               href="/login"
               className="font-semibold text-[#1e3a5f] hover:underline"
             >
-              Log in
+              {t("login_log_in")}
             </Link>
           </p>
         </div>

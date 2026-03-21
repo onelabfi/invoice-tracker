@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { BankConnections } from "./bank-connections";
 import { useTranslation, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { AppHeader } from "./app-header";
 
 interface SettingsTabProps {
   invoiceCount: number;
@@ -75,13 +76,14 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
 
   return (
     <div className="safe-bottom px-4 pt-6 pb-4">
+      <div className="mb-1"><AppHeader /></div>
       <h1 className="text-xl font-extrabold text-gray-900 mb-6">{t("settings")}</h1>
 
       {/* Connected Accounts */}
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Connected accounts
+            {t("settings_connected_accounts")}
           </h2>
         </div>
         <BankConnections />
@@ -91,28 +93,28 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            AI behavior
+            {t("settings_ai_behavior")}
           </h2>
         </div>
         <div className="divide-y divide-gray-50">
           <div className="px-4 py-3 flex items-center justify-between min-h-[52px]">
             <div>
-              <p className="text-sm font-medium text-gray-900">Automatic scanning</p>
-              <p className="text-xs text-gray-500">Daily bank sync & invoice matching</p>
+              <p className="text-sm font-medium text-gray-900">{t("settings_auto_scanning")}</p>
+              <p className="text-xs text-gray-500">{t("settings_auto_scanning_desc")}</p>
             </div>
             <Toggle value={autoScan} onChange={setAutoScan} />
           </div>
           <div className="px-4 py-3 flex items-center justify-between min-h-[52px]">
             <div>
-              <p className="text-sm font-medium text-gray-900">Detect anomalies</p>
-              <p className="text-xs text-gray-500">Duplicate charges & unusual spending</p>
+              <p className="text-sm font-medium text-gray-900">{t("settings_detect_anomalies")}</p>
+              <p className="text-xs text-gray-500">{t("settings_detect_anomalies_desc")}</p>
             </div>
             <Toggle value={detectAnomalies} onChange={setDetectAnomalies} />
           </div>
           <div className="px-4 py-3 flex items-center justify-between min-h-[52px]">
             <div>
-              <p className="text-sm font-medium text-gray-900">Identify savings</p>
-              <p className="text-xs text-gray-500">Find opportunities to reduce costs</p>
+              <p className="text-sm font-medium text-gray-900">{t("settings_identify_savings")}</p>
+              <p className="text-xs text-gray-500">{t("settings_identify_savings_desc")}</p>
             </div>
             <Toggle value={identifySavings} onChange={setIdentifySavings} />
           </div>
@@ -123,7 +125,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Data import
+            {t("settings_data_import")}
           </h2>
         </div>
         <div className="px-4 py-3">
@@ -134,7 +136,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
               <Upload className="h-4 w-4 text-gray-400" />
             )}
             <span className="text-sm text-gray-500">
-              {importing ? "Importing..." : "Upload bank statement (CSV)"}
+              {importing ? t("importing") : t("settings_upload_csv")}
             </span>
             <input
               type="file"
@@ -147,7 +149,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
           {importedCount !== null && (
             <div className="flex items-center gap-2 mt-3 text-sm text-emerald-600">
               <CheckCircle className="h-4 w-4" />
-              {importedCount} transactions imported
+              {t("settings_tx_imported", { count: String(importedCount) })}
             </div>
           )}
         </div>
@@ -157,7 +159,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Preferences
+            {t("settings_preferences")}
           </h2>
         </div>
         <div className="px-4 py-3">
@@ -188,7 +190,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
       <div className="card mb-4">
         <div className="px-4 py-3 border-b border-gray-100">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Data
+            {t("settings_data")}
           </h2>
         </div>
         <button
@@ -202,7 +204,7 @@ export function SettingsTab({ invoiceCount, onLogout, onExport }: SettingsTabPro
           <ChevronRight className="h-4 w-4 text-gray-400" />
         </button>
         <div className="px-4 py-2 border-t border-gray-50">
-          <p className="text-xs text-gray-400">{invoiceCount} invoices tracked</p>
+          <p className="text-xs text-gray-400">{t("settings_invoices_tracked", { count: String(invoiceCount) })}</p>
         </div>
       </div>
 

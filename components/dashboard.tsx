@@ -65,6 +65,22 @@ export function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Push history state when opening invoice detail so browser back closes it
+  const openInvoiceDetail = useCallback((inv: Invoice) => {
+    window.history.pushState({ invoiceDetail: true }, "", "/app");
+    setSelectedInvoice(inv);
+  }, []);
+
+  // Close detail via browser back — popstate fires when user presses back
+  // or when we call history.back() from the in-app button
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedInvoice(null);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const fetchInvoices = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
@@ -168,7 +184,7 @@ export function Dashboard() {
         if (notification.actionType === "mark_paid") {
           handleMarkPaid(inv.id);
         } else {
-          setSelectedInvoice(inv);
+          openInvoiceDetail(inv);
         }
       }
     }
@@ -184,15 +200,15 @@ export function Dashboard() {
   // Invoice detail view
   if (selectedInvoice) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen bg-gray-50">
         <InvoiceDetail
           invoice={selectedInvoice}
-          onBack={() => setSelectedInvoice(null)}
+          onBack={() => window.history.back()}
           onMarkPaid={handleMarkPaid}
           onDelete={handleDelete}
           onRefresh={() => {
             fetchInvoices();
-            setSelectedInvoice(null);
+            window.history.back();
           }}
         />
       </div>
@@ -215,7 +231,7 @@ export function Dashboard() {
           {activeTab === "home" && (
               <HomeTab
                 invoices={invoices}
-                onSelectInvoice={setSelectedInvoice}
+                onSelectInvoice={openInvoiceDetail}
                 onNavigateTab={(tab) => setActiveTab(tab as TabId)}
                 greeting={getGreeting()}
               />
@@ -224,7 +240,7 @@ export function Dashboard() {
               <InvoicesTab
                 invoices={invoices}
                 loading={loading}
-                onSelectInvoice={setSelectedInvoice}
+                onSelectInvoice={openInvoiceDetail}
                 onMarkPaid={handleMarkPaid}
                 onDelete={handleDelete}
                 onUpload={openUpload}

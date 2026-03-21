@@ -122,7 +122,7 @@ export function InvoiceDetail({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-right duration-200">
+    <div className="absolute inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-right duration-200 overflow-y-auto">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <button

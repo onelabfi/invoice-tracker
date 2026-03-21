@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Pago iniciado — verificaremos al recibir",
   "toast_resolved_ignored": "Factura ignorada",
   "landing_headline": "No pierdas ningún pago.",
-  "landing_subtext": "Detectamos pagos olvidados, sobrepagos y oportunidades de ahorro.",
+  "landing_subtext": "Controla tus pagos — sin esfuerzo",
   "landing_cta": "Empezar",
   "landing_login": "¿Ya tienes cuenta?",
   "landing_login_link": "Iniciar sesión",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Omitir por ahora",
   "onboarding_upload_title": "Sube tu primera factura",
   "onboarding_upload_desc": "O sáltalo y empieza a explorar.",
-  "onboarding_finish": "Empezar con Ricordo"
+  "onboarding_finish": "Empezar con Ricordo",
+  "landing_kravia": "Prevención de deudas – con el respaldo de Kravia"
 }

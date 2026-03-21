@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Płatność zainicjowana — potwierdzimy po otrzymaniu",
   "toast_resolved_ignored": "Faktura zignorowana",
   "landing_headline": "Nigdy nie przegap płatności.",
-  "landing_subtext": "Wykrywamy zapomniane płatności, nadpłaty i możliwości oszczędności.",
+  "landing_subtext": "Kontroluj swoje płatności — bez wysiłku",
   "landing_cta": "Rozpocznij",
   "landing_login": "Masz już konto?",
   "landing_login_link": "Zaloguj się",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Pomiń na razie",
   "onboarding_upload_title": "Prześlij swoją pierwszą fakturę",
   "onboarding_upload_desc": "Lub pomiń i zacznij eksplorować.",
-  "onboarding_finish": "Zacznij używać Ricordo"
+  "onboarding_finish": "Zacznij używać Ricordo",
+  "landing_kravia": "Zapobieganie zadłużeniu – wspierane przez Kravia"
 }

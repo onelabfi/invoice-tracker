@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Maksu käynnistetty — vahvistamme kun se on selvitetty",
   "toast_resolved_ignored": "Lasku ohitettu",
   "landing_headline": "Älä koskaan unohda maksua.",
-  "landing_subtext": "Havaitsemme maksamattomat laskut, ylimaksut ja säästömahdollisuudet.",
+  "landing_subtext": "Pysy maksujen tasalla — vaivattomasti",
   "landing_cta": "Aloita",
   "landing_login": "Onko sinulla jo tili?",
   "landing_login_link": "Kirjaudu",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Ohita toistaiseksi",
   "onboarding_upload_title": "Lataa ensimmäinen laskusi",
   "onboarding_upload_desc": "Tai ohita ja aloita tutkiminen.",
-  "onboarding_finish": "Aloita Ricordon käyttö"
+  "onboarding_finish": "Aloita Ricordon käyttö",
+  "landing_kravia": "Velkojen ennaltaehkäisy – Kravian tuella"
 }

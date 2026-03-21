@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Paiement initié — nous vérifierons à réception",
   "toast_resolved_ignored": "Facture ignorée",
   "landing_headline": "Ne manquez plus un paiement.",
-  "landing_subtext": "Nous détectons les paiements oubliés, les surpaiements et les économies possibles.",
+  "landing_subtext": "Gardez le contrôle de vos paiements — sans effort",
   "landing_cta": "Commencer",
   "landing_login": "Vous avez déjà un compte ?",
   "landing_login_link": "Se connecter",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Passer pour le moment",
   "onboarding_upload_title": "Importez votre première facture",
   "onboarding_upload_desc": "Ou passez et commencez à explorer.",
-  "onboarding_finish": "Commencer avec Ricordo"
+  "onboarding_finish": "Commencer avec Ricordo",
+  "landing_kravia": "Prévention des dettes – avec le soutien de Kravia"
 }

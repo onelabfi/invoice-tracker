@@ -40,8 +40,13 @@ export default function LandingPage() {
         </h1>
 
         {/* Subtext */}
-        <p className="text-[13px] text-white/50 leading-relaxed">
+        <p className="text-[13px] text-white/50 leading-relaxed mb-3">
           {t("landing_subtext")}
+        </p>
+
+        {/* Kravia */}
+        <p className="text-[11px] text-white/30 tracking-wide">
+          {t("landing_kravia")}
         </p>
       </div>
 

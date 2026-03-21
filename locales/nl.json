@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Betaling gestart — we bevestigen bij ontvangst",
   "toast_resolved_ignored": "Factuur genegeerd",
   "landing_headline": "Mis nooit meer een betaling.",
-  "landing_subtext": "Wij detecteren vergeten betalingen, te veel betaald en besparingsmogelijkheden.",
+  "landing_subtext": "Houd je betalingen bij — moeiteloos",
   "landing_cta": "Aan de slag",
   "landing_login": "Heb je al een account?",
   "landing_login_link": "Inloggen",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Overslaan",
   "onboarding_upload_title": "Upload je eerste factuur",
   "onboarding_upload_desc": "Of sla over en begin met verkennen.",
-  "onboarding_finish": "Begin met Ricordo"
+  "onboarding_finish": "Begin met Ricordo",
+  "landing_kravia": "Schulden voorkomen – mogelijk gemaakt door Kravia"
 }

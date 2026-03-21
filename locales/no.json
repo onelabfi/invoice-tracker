@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Betaling startet — vi bekrefter ved mottak",
   "toast_resolved_ignored": "Faktura ignorert",
   "landing_headline": "Gå aldri glipp av en betaling.",
-  "landing_subtext": "Vi oppdager glemte betalinger, overbetalinger og sparemuligheter.",
+  "landing_subtext": "Hold oversikt over betalingene dine — uanstrengt",
   "landing_cta": "Kom i gang",
   "landing_login": "Har du allerede en konto?",
   "landing_login_link": "Logg inn",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Hopp over",
   "onboarding_upload_title": "Last opp din første faktura",
   "onboarding_upload_desc": "Eller hopp over og begynn å utforske.",
-  "onboarding_finish": "Begynn å bruke Ricordo"
+  "onboarding_finish": "Begynn å bruke Ricordo",
+  "landing_kravia": "Forebygg gjeld – med støtte fra Kravia"
 }

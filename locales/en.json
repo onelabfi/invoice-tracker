@@ -343,7 +343,7 @@
   "toast_resolved_initiated": "Payment initiated — we'll verify when it clears",
   "toast_resolved_ignored": "Invoice ignored",
   "landing_headline": "Never miss a payment.",
-  "landing_subtext": "We detect what you forgot to pay, what you're overpaying, and what you can save.",
+  "landing_subtext": "Stay on top of your payments — effortlessly",
   "landing_cta": "Get Started",
   "landing_login": "Already have an account?",
   "landing_login_link": "Log in",
@@ -359,5 +359,6 @@
   "onboarding_skip": "Skip for now",
   "onboarding_upload_title": "Upload your first invoice",
   "onboarding_upload_desc": "Or skip and start exploring.",
-  "onboarding_finish": "Start using Ricordo"
+  "onboarding_finish": "Start using Ricordo",
+  "landing_kravia": "Debt prevention powered by Kravia"
 }

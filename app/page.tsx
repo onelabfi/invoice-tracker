@@ -4,16 +4,27 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, Shield, Globe } from "lucide-react";
 import { useTranslation, SUPPORTED_LOCALES } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LandingPage() {
   const { t, locale, setLocale } = useTranslation();
   const [show, setShow] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = setTimeout(() => setShow(true), 50);
     return () => clearTimeout(id);
+  }, []);
+
+  // Check auth state so CTAs route correctly
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (data.user) setIsAuthed(true);
+      });
   }, []);
 
   // Close dropdown on outside click
@@ -108,22 +119,24 @@ export default function LandingPage() {
           show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        {/* CTA */}
+        {/* CTA — route to /app if already logged in, /signup if not */}
         <Link
-          href="/signup"
+          href={isAuthed ? "/app" : "/signup"}
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-bold text-slate-900 hover:bg-gray-100 transition-colors min-h-[48px] shadow-lg"
         >
-          {t("landing_cta")}
+          {isAuthed ? t("landing_open_app") || "Open App" : t("landing_cta")}
           <ArrowRight className="h-4 w-4" />
         </Link>
 
-        {/* Login link */}
-        <p className="mt-3 text-xs text-white/35 text-center">
-          {t("landing_login")}{" "}
-          <Link href="/login" className="font-semibold text-white/60 hover:text-white transition-colors">
-            {t("landing_login_link")}
-          </Link>
-        </p>
+        {/* Login link — only show when not authenticated */}
+        {!isAuthed && (
+          <p className="mt-3 text-xs text-white/35 text-center">
+            {t("landing_login")}{" "}
+            <Link href="/login" className="font-semibold text-white/60 hover:text-white transition-colors">
+              {t("landing_login_link")}
+            </Link>
+          </p>
+        )}
 
         {/* Footer trust */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] text-white/25">

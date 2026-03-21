@@ -1,25 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Shield } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import { isOnboarded } from "@/lib/onboarding";
 
 export default function LandingPage() {
-  const router = useRouter();
   const { t } = useTranslation();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (isOnboarded()) {
-      router.replace("/app");
-      return;
-    }
+    // Always show landing page (demo mode)
     const id = setTimeout(() => setShow(true), 50);
     return () => clearTimeout(id);
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 safe-bottom">

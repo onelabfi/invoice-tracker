@@ -48,9 +48,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Authenticated user trying to access login/signup → /app
+  // Authenticated user trying to access login/signup → landing page
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/app", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return response;

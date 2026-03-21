@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Globe,
   User,
   Building2,
   Upload,
@@ -14,12 +13,12 @@ import {
   CheckCircle,
   FileUp,
 } from "lucide-react";
-import { useTranslation, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 import { setOnboardingState } from "@/lib/onboarding";
 import { BankConnections } from "@/components/bank-connections";
 
-type Step = "language" | "name" | "bank" | "upload";
-const STEPS: Step[] = ["language", "name", "bank", "upload"];
+type Step = "name" | "bank" | "upload";
+const STEPS: Step[] = ["name", "bank", "upload"];
 
 function StepDots({ current }: { current: Step }) {
   const idx = STEPS.indexOf(current);
@@ -43,8 +42,8 @@ function StepDots({ current }: { current: Step }) {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { t, setLocale } = useTranslation();
-  const [step, setStep] = useState<Step>("language");
+  const { t } = useTranslation();
+  const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
@@ -62,43 +61,7 @@ export default function OnboardingPage() {
     window.location.href = "/app";
   }
 
-  // ── STEP 1: Language ──────────────────────────────────────
-  if (step === "language") {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <StepDots current={step} />
-        <div className="flex-1 px-5 pb-8">
-          <div className="flex items-center justify-center mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
-              <Globe className="h-6 w-6 text-[#1e3a5f]" />
-            </div>
-          </div>
-          <h1 className="text-xl font-extrabold text-gray-900 text-center mb-8">
-            {t("onboarding_choose_language")}
-          </h1>
-          <div className="grid grid-cols-2 gap-2">
-            {SUPPORTED_LOCALES.map((loc) => (
-              <button
-                key={loc.code}
-                onClick={() => {
-                  setLocale(loc.code);
-                  setOnboardingState({ language: loc.code });
-                  // Small delay so user sees the selection
-                  setTimeout(advance, 200);
-                }}
-                className="flex items-center gap-3 rounded-xl bg-gray-50 p-3.5 text-left hover:bg-blue-50 hover:ring-1 hover:ring-[#1e3a5f]/20 transition-all min-h-[48px]"
-              >
-                <span className="text-xl">{loc.flag}</span>
-                <span className="text-sm font-medium text-gray-900">{loc.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── STEP 2: Name ──────────────────────────────────────────
+  // ── STEP 1: Name ──────────────────────────────────────────
   if (step === "name") {
     return (
       <div className="min-h-screen bg-white flex flex-col">

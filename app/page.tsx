@@ -1,22 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Shield } from "lucide-react";
-import { useTranslation } from "@/lib/i18n";
+import { ArrowRight, Shield, Globe } from "lucide-react";
+import { useTranslation, SUPPORTED_LOCALES } from "@/lib/i18n";
 
 export default function LandingPage() {
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const [show, setShow] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Always show landing page (demo mode)
     const id = setTimeout(() => setShow(true), 50);
     return () => clearTimeout(id);
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    }
+    if (langOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [langOpen]);
+
+  const currentLocale = SUPPORTED_LOCALES.find((l) => l.code === locale);
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 safe-bottom">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 safe-bottom relative">
+      {/* Language switcher — top right */}
+      <div
+        ref={langRef}
+        className={`absolute top-4 right-4 z-50 transition-all duration-700 ${
+          show ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <button
+          onClick={() => setLangOpen(!langOpen)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-all text-xs"
+        >
+          <Globe className="h-3.5 w-3.5" />
+          <span>{currentLocale?.flag} {locale.toUpperCase()}</span>
+        </button>
+
+        {langOpen && (
+          <div className="absolute right-0 mt-1 w-44 rounded-xl bg-slate-800 border border-white/10 shadow-2xl py-1.5 max-h-80 overflow-y-auto">
+            {SUPPORTED_LOCALES.map((loc) => (
+              <button
+                key={loc.code}
+                onClick={() => {
+                  setLocale(loc.code);
+                  setLangOpen(false);
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors ${
+                  loc.code === locale
+                    ? "text-white bg-white/10"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <span className="text-base">{loc.flag}</span>
+                <span>{loc.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div
         className={`flex-1 flex flex-col items-center justify-center text-center max-w-xs mx-auto transition-all duration-700 ${
           show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

@@ -22,17 +22,17 @@ export default function LandingPage() {
           show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        {/* Logo */}
-        <img
-          src="/ricordo-logo.png"
-          alt="Ricordo"
-          className="h-16 w-auto mb-2 rounded-2xl"
-        />
-
-        {/* Motto */}
-        <p className="text-xs italic text-white/35 tracking-widest mb-8">
-          {t("logo_motto")}
-        </p>
+        {/* Logo identity block — tight grouping */}
+        <div className="flex flex-col items-center mb-10">
+          <img
+            src="/ricordo-logo.png"
+            alt="Ricordo"
+            className="h-16 w-auto rounded-2xl"
+          />
+          <p className="text-xs italic text-white/35 tracking-widest mt-1.5">
+            {t("logo_motto")}
+          </p>
+        </div>
 
         {/* Headline */}
         <h1 className="text-[22px] font-extrabold text-white leading-tight mb-3">
@@ -44,15 +44,15 @@ export default function LandingPage() {
           {t("landing_subtext")}
         </p>
 
-        {/* Kravia */}
-        <p className="text-[11px] text-white/30 tracking-wide">
+        {/* Kravia trust layer */}
+        <p className="text-[11px] text-white/60 tracking-wide">
           {t("landing_kravia")}
         </p>
       </div>
 
       {/* Bottom section — always visible */}
       <div
-        className={`pb-6 pt-6 max-w-xs mx-auto w-full transition-all duration-700 delay-200 ${
+        className={`pb-6 pt-8 max-w-xs mx-auto w-full transition-all duration-700 delay-200 ${
           show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >

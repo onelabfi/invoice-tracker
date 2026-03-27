@@ -1,18 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Supabase public credentials — anon key + URL are intentionally public
-  // (designed to be exposed in the browser). Secret operations use service_role
-  // key which lives only in server-side env vars and is never committed.
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: "https://wvhquananouqvpfqqpoy.supabase.co",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2aHF1YW5hbm91cXZwZnFxcG95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1Nzg4MjIsImV4cCI6MjA4OTE1NDgyMn0.yZxq_NSwbFiDtVHcjO_1GmOWS-i-v7yqy0AiU1Oveco",
-  },
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client"],
   },
   async headers() {
+    // NEXT_PUBLIC_APP_URL = your production domain, e.g. https://app.ricordo.fi
+    // Falls back to wildcard only when not set (local dev)
+    const origin = process.env.NEXT_PUBLIC_APP_URL || "*";
+
     return [
+      {
+        // CORS — restrict API routes to same-origin frontend only
+        source: "/api/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: origin },
+          { key: "Access-Control-Allow-Methods", value: "GET,POST,PATCH,DELETE,OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+          { key: "Access-Control-Max-Age", value: "86400" },
+        ],
+      },
       {
         // Service worker must be served from root with no cache
         source: "/sw.js",

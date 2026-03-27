@@ -2,6 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import { rateLimit } from "@/lib/ratelimit";
+import { checkAiBudget, recordAiUsage } from "@/lib/ai-budget";
+import { logAudit, requestMeta } from "@/lib/audit";
+import { apiError } from "@/lib/errors";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -26,6 +31,30 @@ function getSystemPrompt(locale: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Emergency kill switch — set AI_DISABLED=true in env to block all AI requests instantly
+  if (process.env.AI_DISABLED === "true") {
+    return NextResponse.json({ error: "AI features are temporarily unavailable." }, { status: 503 });
+  }
+
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
+  const { ip, userAgent } = requestMeta(request);
+
+  // Per-minute rate limit (Upstash sliding window)
+  const rl = await rateLimit(`ask:${auth.userId}:${ip}`);
+  if (!rl.ok) {
+    logAudit({ userId: auth.userId, action: "RATE_LIMIT_HIT", ip, userAgent, metadata: { route: "/api/ask" } });
+    return rl.response;
+  }
+
+  // Per-day AI budget (requests + tokens)
+  const budget = await checkAiBudget(auth.userId);
+  if (!budget.ok) {
+    logAudit({ userId: auth.userId, action: "RATE_LIMIT_HIT", ip, userAgent, metadata: { route: "/api/ask", reason: "daily_budget" } });
+    return budget.response;
+  }
+
   try {
     const body = await request.json();
     const { question, locale } = body as { question: string; locale?: string };
@@ -39,6 +68,7 @@ export async function POST(request: NextRequest) {
 
     const [invoices, transactions] = await Promise.all([
       prisma.invoice.findMany({
+        where: { userId: auth.userId },
         include: {
           matches: {
             include: {
@@ -49,6 +79,7 @@ export async function POST(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.transaction.findMany({
+        where: { userId: auth.userId },
         orderBy: { date: "desc" },
       }),
     ]);
@@ -104,6 +135,20 @@ USER QUESTION: ${question}`;
       messages: [{ role: "user", content: userMessage }],
     });
 
+    // Record token usage (fire-and-forget — never blocks response)
+    recordAiUsage(auth.userId, message.usage.input_tokens, message.usage.output_tokens);
+    logAudit({
+      userId: auth.userId,
+      action: "ASK_AI",
+      ip,
+      userAgent,
+      metadata: {
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens,
+        model: message.model,
+      },
+    });
+
     const textBlock = message.content.find((block) => block.type === "text");
     const answer = textBlock ? textBlock.text : "I could not generate a response.";
 
@@ -137,10 +182,6 @@ USER QUESTION: ${question}`;
       relatedInvoices,
     });
   } catch (error) {
-    console.error("Ask Ricordo error:", error);
-    return NextResponse.json(
-      { error: "Failed to process your question." },
-      { status: 500 }
-    );
+    return apiError(error, "ask");
   }
 }

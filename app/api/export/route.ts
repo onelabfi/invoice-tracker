@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { generateCSV } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const status = searchParams.get("status");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { userId: auth.userId };
 
     if (from || to) {
       const dateFilter: Record<string, Date> = {};

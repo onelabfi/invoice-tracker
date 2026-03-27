@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 // Country → Provider mapping
 const COUNTRY_PROVIDERS: Record<string, "nordigen" | "plaid"> = {
@@ -112,6 +113,9 @@ const KNOWN_BANKS: Record<string, { id: string; name: string; logo?: string }[]>
 };
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const country = request.nextUrl.searchParams.get("country")?.toUpperCase();
 
   if (!country) {

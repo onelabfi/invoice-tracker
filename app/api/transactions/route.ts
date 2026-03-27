@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
+    const { searchParams } = new URL(request.url);
+    const cursor = searchParams.get("cursor") ?? undefined;
+    const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 100);
+
     const transactions = await prisma.transaction.findMany({
+      where: { userId: auth.userId },
       orderBy: { date: "desc" },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    return NextResponse.json(transactions);
+    const hasNextPage = transactions.length > limit;
+    const page = hasNextPage ? transactions.slice(0, limit) : transactions;
+    const nextCursor = hasNextPage ? page[page.length - 1].id : null;
+
+    return NextResponse.json({ data: page, nextCursor, hasNextPage });
   } catch (error) {
     console.error("Failed to fetch transactions:", error);
     return NextResponse.json(
@@ -18,6 +33,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { transactions } = await request.json();
 
@@ -44,6 +62,7 @@ export async function POST(request: NextRequest) {
           reference: tx.reference || null,
           description: tx.description || null,
           bankAccount: tx.bankAccount || null,
+          userId: auth.userId,
         })
       ),
     });

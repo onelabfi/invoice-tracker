@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 /**
  * GoCardless/Nordigen OAuth callback.
@@ -39,6 +40,13 @@ export async function GET(request: NextRequest) {
   const ref = request.nextUrl.searchParams.get("ref");   // requisition_id
   const origin = request.nextUrl.origin;
 
+  // Verify user session — callback arrives via browser redirect so cookies are present
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    console.error("[bank-callback] Unauthenticated callback — session expired");
+    return NextResponse.redirect(`${origin}/?bank_error=session_expired`);
+  }
+
   if (!ref) {
     console.error("[bank-callback] Missing ref parameter");
     return NextResponse.redirect(`${origin}/?bank_error=missing_ref`);
@@ -71,10 +79,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/?bank_error=no_accounts`);
     }
 
-    // ── 3. Find parent BankConnection (created during /api/banks/connect) ──
+    // ── 3. Find parent BankConnection — scoped to this user's connection only ──
     const parentConn = await prisma.bankConnection.findFirst({
-      where: { externalId: ref },
+      where: { externalId: ref, userId: auth.userId, status: "pending" },
     });
+
+    // Idempotency: if already connected, redirect as success rather than error
+    if (!parentConn) {
+      const alreadyConnected = await prisma.bankConnection.findFirst({
+        where: { externalId: ref, userId: auth.userId, status: "connected" },
+      });
+      if (alreadyConnected) {
+        return NextResponse.redirect(`${origin}/?bank_connected=1`);
+      }
+    }
 
     if (!parentConn) {
       console.error(`[bank-callback] No BankConnection found for requisition ${ref}`);
@@ -130,7 +148,7 @@ export async function GET(request: NextRequest) {
         });
         console.log(`[bank-callback] Updated parent connection ${parentConn.id} with account ${accountId}`);
       } else {
-        // Create a new row for each additional account
+        // Create a new row for each additional account — inherit userId from parent
         await prisma.bankConnection.create({
           data: {
             bankName:          parentConn.bankName,
@@ -142,6 +160,7 @@ export async function GET(request: NextRequest) {
             accessToken:       token,
             accountExternalId: accountId,
             status:            "connected",
+            userId:            auth.userId,
           },
         });
         console.log(`[bank-callback] Created new connection for additional account ${accountId}`);

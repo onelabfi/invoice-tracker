@@ -1,12 +1,17 @@
 export const dynamic = "force-dynamic";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { predictRecurringBills } from "@/lib/claude";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const invoices = await prisma.invoice.findMany({
+      where: { userId: auth.userId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

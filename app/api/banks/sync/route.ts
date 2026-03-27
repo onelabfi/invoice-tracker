@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 /** Always get a fresh Nordigen token using env credentials */
 async function getNordigenToken(): Promise<string | null> {
@@ -26,12 +27,16 @@ async function getNordigenToken(): Promise<string | null> {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json().catch(() => ({}));
     const { connectionId } = body as { connectionId?: string };
 
     // Only sync real, connected accounts with valid account IDs
     const realAccountFilter = {
+      userId: auth.userId,
       status: "connected" as const,
       OR: [
         { provider: { in: ["csv", "manual", "plaid"] as string[] } },
@@ -174,6 +179,7 @@ export async function POST(request: NextRequest) {
                   bankAccount:  conn.accountName ?? conn.bankName,
                   connectionId: conn.id,
                   rawData:      JSON.stringify(txn),
+                  userId:       auth.userId,
                 },
               });
               transactionCount++;
@@ -331,6 +337,7 @@ export async function POST(request: NextRequest) {
                   bankAccount: conn.accountName ?? conn.bankName,
                   connectionId: conn.id,
                   rawData: JSON.stringify(txn),
+                  userId: auth.userId,
                 },
               });
               transactionCount++;
@@ -405,6 +412,7 @@ export async function POST(request: NextRequest) {
                   bankAccount: conn.accountName ?? conn.bankName,
                   connectionId: conn.id,
                   rawData: JSON.stringify(txn),
+                  userId: auth.userId,
                 },
               });
               transactionCount++;
@@ -473,6 +481,7 @@ export async function POST(request: NextRequest) {
                     bankAccount:  conn.bankName,
                     connectionId: conn.id,
                     rawData:      JSON.stringify(txn),
+                    userId:       auth.userId,
                   },
                 });
                 transactionCount++;

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 const TINK_BASE = "https://api.tink.com";
 const TINK_LINK_ACTOR_CLIENT_ID = "df05e4b379934cd09963197cc855bfe9";
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const { institutionId, institutionName, country, provider, iban } = body as {
@@ -92,16 +96,7 @@ export async function POST(request: NextRequest) {
         }
         const { code: authCode } = await authGrantRes.json();
 
-        // 4. Build Tink Link URL
-        // Use account-check for sandbox compatibility; works for production too
-        const tinkLinkUrl =
-          `https://link.tink.com/1.0/account-check/one-time` +
-          `?client_id=${process.env.TINK_CLIENT_ID}` +
-          `&redirect_uri=${encodeURIComponent(`${origin}/api/banks/tink/callback`)}` +
-          `&authorization_code=${authCode}` +
-          `&market=${country}`;
-
-        // 5. Save BankConnection with provider="tink"
+        // 4. Save BankConnection with userId BEFORE building URL (need connection.id for state param)
         const connection = await prisma.bankConnection.create({
           data: {
             bankName: institutionName,
@@ -112,8 +107,18 @@ export async function POST(request: NextRequest) {
             externalId: tinkUserId,
             accessToken: clientToken,
             status: "pending",
+            userId: auth.userId,
           },
         });
+
+        // 5. Build Tink Link URL with state=connection.id (CSRF + ownership binding)
+        const tinkLinkUrl =
+          `https://link.tink.com/1.0/account-check/one-time` +
+          `?client_id=${process.env.TINK_CLIENT_ID}` +
+          `&redirect_uri=${encodeURIComponent(`${origin}/api/banks/tink/callback`)}` +
+          `&authorization_code=${authCode}` +
+          `&market=${country}` +
+          `&state=${connection.id}`;
 
         return NextResponse.json({
           connection,
@@ -194,6 +199,7 @@ export async function POST(request: NextRequest) {
             externalId: requisition.id,
             accessToken: access,
             status: "pending",
+            userId: auth.userId,
           },
         });
 
@@ -225,7 +231,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             client_id: process.env.PLAID_CLIENT_ID,
             secret: process.env.PLAID_SECRET,
-            user: { client_user_id: "ricordo-user" },
+            user: { client_user_id: auth.userId },
             client_name: "Ricordo",
             products: ["transactions"],
             country_codes: ["US"],
@@ -243,6 +249,7 @@ export async function POST(request: NextRequest) {
             provider: "plaid",
             institutionId,
             status: "pending",
+            userId: auth.userId,
           },
         });
 
@@ -266,16 +273,7 @@ export async function POST(request: NextRequest) {
         const origin = request.nextUrl.origin;
         const redirectUri = `${origin}/api/banks/truelayer/callback`;
 
-        const params = new URLSearchParams({
-          response_type: "code",
-          client_id: process.env.TRUELAYER_CLIENT_ID,
-          scope: "info accounts balance transactions",
-          redirect_uri: redirectUri,
-          providers: "mock",
-        });
-
-        const authUrl = `https://auth.truelayer-sandbox.com/?${params}`;
-
+        // Create connection BEFORE building URL (need connection.id for state param)
         const connection = await prisma.bankConnection.create({
           data: {
             bankName: institutionName,
@@ -284,8 +282,21 @@ export async function POST(request: NextRequest) {
             provider: "truelayer",
             institutionId: institutionId || null,
             status: "pending",
+            userId: auth.userId,
           },
         });
+
+        // Build OAuth URL with state=connection.id (CSRF + ownership binding)
+        const params = new URLSearchParams({
+          response_type: "code",
+          client_id: process.env.TRUELAYER_CLIENT_ID!,
+          scope: "info accounts balance transactions",
+          redirect_uri: redirectUri,
+          providers: "mock",
+          state: connection.id,
+        });
+
+        const authUrl = `https://auth.truelayer-sandbox.com/?${params}`;
 
         return NextResponse.json({
           connection,
@@ -307,6 +318,7 @@ export async function POST(request: NextRequest) {
         provider: provider || "manual",
         institutionId: institutionId || null,
         status: "connected",
+        userId: auth.userId,
       },
     });
 

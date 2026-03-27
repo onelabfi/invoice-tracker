@@ -8,12 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      String   @default("owner") // owner, employee, accountant
-  createdAt DateTime @default(now())
-  invoices  Invoice[]
+  id              String           @id @default(cuid())
+  supabaseId      String?          @unique // auth.users.id UUID — bridge for Storage RLS
+  name            String
+  email           String           @unique
+  role            String           @default("owner") // owner, employee, accountant
+  createdAt       DateTime         @default(now())
+  invoices        Invoice[]
+  bankConnections BankConnection[]
+  transactions    Transaction[]
+  notifications   Notification[]
 }
 
 model Invoice {
@@ -36,6 +40,7 @@ model Invoice {
   source            String    @default("upload") // upload, camera, email, manual
   fileName          String?
   fileUrl           String?
+  storagePath       String?   // Supabase Storage path — use /api/invoices/[id]/file-url for signed URL
   rawText           String?
   confidence        Float?
   userId            String?
@@ -46,7 +51,7 @@ model Invoice {
 }
 
 model Transaction {
-  id              String   @id @default(cuid())
+  id              String          @id @default(cuid())
   bankAccount     String?
   merchant        String
   amount          Float
@@ -55,23 +60,27 @@ model Transaction {
   date            DateTime
   rawData         String?
   connectionId    String?
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
   matches         Match[]
-  createdAt       DateTime @default(now())
+  createdAt       DateTime        @default(now())
 }
 
 model BankConnection {
-  id              String   @id @default(cuid())
-  bankName        String
-  accountName     String?
-  status          String   @default("connected") // connected, syncing, error, disconnected
-  provider        String   @default("manual")    // nordigen, plaid, csv, manual
-  country         String?
-  institutionId   String?
-  externalId      String?  // requisition_id (nordigen) or item_id (plaid)
-  accessToken     String?
-  accountExternalId String? // external account ID from provider
-  lastSynced      DateTime?
-  createdAt       DateTime @default(now())
+  id                String    @id @default(cuid())
+  bankName          String
+  accountName       String?
+  status            String    @default("connected") // connected, syncing, error, disconnected
+  provider          String    @default("manual")    // nordigen, plaid, csv, manual, tink, truelayer
+  country           String?
+  institutionId     String?
+  externalId        String?   // requisition_id (nordigen) or item_id (plaid) or tinkUserId
+  accessToken       String?
+  accountExternalId String?   // external account ID from provider
+  lastSynced        DateTime?
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id])
+  createdAt         DateTime  @default(now())
 }
 
 model Notification {
@@ -82,7 +91,24 @@ model Notification {
   invoiceId     String?
   read          Boolean  @default(false)
   actionType    String?
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
   createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // CREATE_INVOICE, DELETE_INVOICE, UPLOAD_FILE, CONNECT_BANK, etc.
+  resourceId String?
+  ip         String?
+  userAgent  String?
+  metadata   String?  // JSON — extra context (amounts, providers, error codes, etc.)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
 }
 
 model Match {

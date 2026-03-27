@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     /**
      * Only return connections that are genuinely usable:
@@ -12,6 +16,7 @@ export async function GET() {
      */
     const connections = await prisma.bankConnection.findMany({
       where: {
+        userId: auth.userId,
         status: "connected",
         OR: [
           { provider: { in: ["csv", "manual", "plaid"] } },
@@ -45,20 +50,32 @@ export async function GET() {
  * DELETE /api/bank-connections?all=demo — delete all demo/orphan connections
  */
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const id = request.nextUrl.searchParams.get("id");
     const all = request.nextUrl.searchParams.get("all");
 
     if (id) {
+      // Verify ownership before deleting
+      const conn = await prisma.bankConnection.findFirst({
+        where: { id, userId: auth.userId },
+        select: { id: true },
+      });
+      if (!conn) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
       await prisma.transaction.deleteMany({ where: { connectionId: id } });
       await prisma.bankConnection.delete({ where: { id } });
       return NextResponse.json({ deleted: id });
     }
 
     if (all === "demo") {
-      // Delete connections that are not fully linked (no accountExternalId for nordigen, or status != connected)
+      // Delete this user's orphan connections
       const orphans = await prisma.bankConnection.findMany({
         where: {
+          userId: auth.userId,
           OR: [
             { status: { not: "connected" } },
             { provider: "nordigen", accountExternalId: null },
@@ -81,6 +98,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const { bankName, accountName } = body;
@@ -98,6 +118,7 @@ export async function POST(request: NextRequest) {
         accountName,
         status: "connected",
         lastSynced: new Date(),
+        userId: auth.userId,
       },
     });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 /**
  * TrueLayer OAuth callback.
@@ -15,8 +16,16 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const state = request.nextUrl.searchParams.get("state");  // connection.id set in connect/route.ts
   const error = request.nextUrl.searchParams.get("error");
   const origin = request.nextUrl.origin;
+
+  // Verify user session — callback arrives via browser redirect so cookies are present
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    console.error("[truelayer-callback] Unauthenticated callback — session expired");
+    return NextResponse.redirect(`${origin}/?bank_error=session_expired`);
+  }
 
   if (error) {
     console.error("[truelayer-callback] Auth error:", error);
@@ -28,6 +37,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/?bank_error=missing_code`);
   }
 
+  if (!state) {
+    console.error("[truelayer-callback] Missing state parameter");
+    return NextResponse.redirect(`${origin}/?bank_error=missing_state`);
+  }
+
   try {
     const clientId = process.env.TRUELAYER_CLIENT_ID;
     const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
@@ -37,14 +51,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/?bank_error=missing_truelayer_config`);
     }
 
-    // Find the most recent pending TrueLayer connection
+    // Find connection by id (state param) scoped to this user — eliminates race condition
     const parentConn = await prisma.bankConnection.findFirst({
-      where: { provider: "truelayer", status: "pending" },
-      orderBy: { createdAt: "desc" },
+      where: { id: state, provider: "truelayer", userId: auth.userId, status: "pending" },
     });
 
+    // Idempotency: if already connected, redirect as success
     if (!parentConn) {
-      console.error("[truelayer-callback] No pending TrueLayer BankConnection found");
+      const alreadyConnected = await prisma.bankConnection.findFirst({
+        where: { id: state, provider: "truelayer", userId: auth.userId, status: "connected" },
+      });
+      if (alreadyConnected) return NextResponse.redirect(`${origin}/?bank_connected=1`);
+      console.error("[truelayer-callback] No matching pending TrueLayer BankConnection found");
       return NextResponse.redirect(`${origin}/?bank_error=connection_not_found`);
     }
 
@@ -118,6 +136,7 @@ export async function GET(request: NextRequest) {
           },
         });
       } else {
+        // Inherit userId from parent — additional accounts belong to same user
         await prisma.bankConnection.create({
           data: {
             bankName: parentConn.bankName,
@@ -130,6 +149,7 @@ export async function GET(request: NextRequest) {
             externalId: refreshToken,
             status: "connected",
             lastSynced: new Date(),
+            userId: auth.userId,
           },
         });
       }

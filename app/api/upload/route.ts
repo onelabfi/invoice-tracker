@@ -1,13 +1,25 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import { rateLimit } from "@/lib/ratelimit";
+import { logAudit, requestMeta } from "@/lib/audit";
+import { apiError } from "@/lib/errors";
 import { extractInvoiceData, checkForDuplicates } from "@/lib/claude";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
+    const rl = await rateLimit(`upload:${auth.userId}`);
+    if (!rl.ok) return rl.response;
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const source = (formData.get("source") as string) || "upload";
@@ -16,16 +28,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Allowed: PDF, JPEG, PNG, WEBP" },
+        { status: 400 }
+      );
+    }
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: "File too large. Maximum: 10 MB" }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save file to uploads directory
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    await mkdir(uploadsDir, { recursive: true });
+    // Upload to Supabase Storage using user's JWT (no service role needed)
+    const supabase = await createClient();
+    const storagePath = `invoices/${auth.supabaseId}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("invoice-files")
+      .upload(storagePath, buffer, { contentType: file.type });
 
-    const uniqueName = `${Date.now()}-${file.name}`;
-    const filePath = path.join(uploadsDir, uniqueName);
-    await writeFile(filePath, buffer);
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+    // Do NOT call getPublicUrl — bucket must be private. File URL is generated on demand via
+    // GET /api/invoices/[id]/file-url which returns a short-lived signed URL.
 
     // Prepare content for Claude
     let fileContent: string;
@@ -48,9 +73,10 @@ export async function POST(request: NextRequest) {
     // Extract invoice data using Claude
     const extracted = await extractInvoiceData(fileContent, mimeType);
 
-    // Check for duplicates against existing invoices
+    // Check for duplicates against this user's existing invoices only
     const existingInvoices = await prisma.invoice.findMany({
       where: {
+        userId: auth.userId,
         status: { in: ["unpaid", "overdue", "paid"] },
       },
       select: {
@@ -78,7 +104,7 @@ export async function POST(request: NextRequest) {
       status = "duplicate";
     }
 
-    // Save to database
+    // Save to database — store storagePath, not a public URL
     const invoice = await prisma.invoice.create({
       data: {
         vendor: extracted.vendor,
@@ -94,22 +120,31 @@ export async function POST(request: NextRequest) {
         originalInvoiceId: duplicateCheck.originalInvoiceId,
         source,
         fileName: file.name,
-        fileUrl: `/uploads/${uniqueName}`,
+        storagePath,           // private path — access via /api/invoices/[id]/file-url
         rawText: fileContent.substring(0, 10000),
+        confidence: extracted.confidence,
+        userId: auth.userId,
+      },
+    });
+
+    const { ip, userAgent } = requestMeta(request);
+    logAudit({
+      userId: auth.userId,
+      action: "UPLOAD_FILE",
+      resourceId: invoice.id,
+      ip,
+      userAgent,
+      metadata: {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        isDuplicate: duplicateCheck.isDuplicate,
         confidence: extracted.confidence,
       },
     });
 
-    return NextResponse.json({
-      invoice,
-      extracted,
-      duplicateCheck,
-    });
+    return NextResponse.json({ invoice, extracted, duplicateCheck });
   } catch (error) {
-    console.error("Upload failed:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload failed" },
-      { status: 500 }
-    );
+    return apiError(error, "upload");
   }
 }

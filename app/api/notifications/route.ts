@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const notifications = await prisma.notification.findMany({
+      where: { userId: auth.userId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -18,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const data = await request.json();
 
@@ -28,6 +36,7 @@ export async function POST(request: NextRequest) {
         type: data.type || "info",
         invoiceId: data.invoiceId || null,
         actionType: data.actionType || null,
+        userId: auth.userId,
       },
     });
 

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 /* ------------------------------------------------------------------ */
 /*  Helper utilities                                                   */
@@ -114,22 +115,27 @@ function confidence(signals: MatchSignals): number {
 /*  POST handler                                                       */
 /* ------------------------------------------------------------------ */
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
-    // 1. Fetch unpaid / overdue invoices
+    // 1. Fetch this user's unpaid / overdue invoices
     const invoices = await prisma.invoice.findMany({
       where: {
+        userId: auth.userId,
         status: { in: ["unpaid", "overdue"] },
       },
     });
 
-    // 2. Fetch unmatched transactions
+    // 2. Fetch this user's unmatched transactions
     const matchedTxIds = (
       await prisma.match.findMany({ select: { transactionId: true } })
     ).map((m: { transactionId: string }) => m.transactionId);
 
     const transactions = await prisma.transaction.findMany({
       where: {
+        userId: auth.userId,
         id: { notIn: matchedTxIds.length > 0 ? matchedTxIds : undefined },
       },
     });
@@ -177,7 +183,7 @@ export async function POST() {
             invoicesUpdated++;
           }
 
-          // Notification for high-confidence match
+          // Notification scoped to user
           await prisma.notification.create({
             data: {
               title: "Payment matched",
@@ -185,6 +191,7 @@ export async function POST() {
               type: "success",
               invoiceId: invoice.id,
               actionType: "view",
+              userId: auth.userId,
             },
           });
         } else if (score >= 0.5) {
@@ -199,7 +206,6 @@ export async function POST() {
           });
           possibleMatches++;
 
-          // Notification for possible match
           await prisma.notification.create({
             data: {
               title: "Possible payment found",
@@ -207,6 +213,7 @@ export async function POST() {
               type: "warning",
               invoiceId: invoice.id,
               actionType: "view",
+              userId: auth.userId,
             },
           });
         }

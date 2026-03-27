@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 const TINK_BASE = "https://api.tink.com";
 const TINK_LINK_ACTOR_CLIENT_ID = "df05e4b379934cd09963197cc855bfe9";
@@ -21,14 +22,27 @@ const TINK_LINK_ACTOR_CLIENT_ID = "df05e4b379934cd09963197cc855bfe9";
  */
 export async function GET(request: NextRequest) {
   const credentialsId = request.nextUrl.searchParams.get("credentialsId");
+  const state = request.nextUrl.searchParams.get("state");  // connection.id set in connect/route.ts
   const origin = request.nextUrl.origin;
+
+  // Verify user session — callback arrives via browser redirect so cookies are present
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    console.error("[tink-callback] Unauthenticated callback — session expired");
+    return NextResponse.redirect(`${origin}/?bank_error=session_expired`);
+  }
 
   if (!credentialsId) {
     console.error("[tink-callback] Missing credentialsId parameter");
     return NextResponse.redirect(`${origin}/?bank_error=missing_credentials_id`);
   }
 
-  console.log(`[tink-callback] Processing credentialsId: ${credentialsId}`);
+  if (!state) {
+    console.error("[tink-callback] Missing state parameter");
+    return NextResponse.redirect(`${origin}/?bank_error=missing_state`);
+  }
+
+  console.log(`[tink-callback] Processing credentialsId: ${credentialsId} state: ${state}`);
 
   try {
     const clientId = process.env.TINK_CLIENT_ID;
@@ -39,14 +53,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/?bank_error=missing_tink_config`);
     }
 
-    // Find the most recent pending Tink connection
+    // Find connection by id (state param) scoped to this user — eliminates race condition
     const parentConn = await prisma.bankConnection.findFirst({
-      where: { provider: "tink", status: "pending" },
-      orderBy: { createdAt: "desc" },
+      where: { id: state, provider: "tink", userId: auth.userId, status: "pending" },
     });
 
+    // Idempotency: if already connected, redirect as success
     if (!parentConn) {
-      console.error("[tink-callback] No pending Tink BankConnection found");
+      const alreadyConnected = await prisma.bankConnection.findFirst({
+        where: { id: state, provider: "tink", userId: auth.userId, status: "connected" },
+      });
+      if (alreadyConnected) return NextResponse.redirect(`${origin}/?bank_connected=1`);
+      console.error("[tink-callback] No matching pending Tink BankConnection found");
       return NextResponse.redirect(`${origin}/?bank_error=connection_not_found`);
     }
 
@@ -178,7 +196,7 @@ export async function GET(request: NextRequest) {
         });
         console.log(`[tink-callback] Updated parent connection ${parentConn.id}`);
       } else {
-        // Create a new row for additional accounts
+        // Create a new row for additional accounts — inherit userId from parent
         await prisma.bankConnection.create({
           data: {
             bankName: parentConn.bankName,
@@ -191,6 +209,7 @@ export async function GET(request: NextRequest) {
             accountExternalId: accountId,
             status: "connected",
             lastSynced: new Date(),
+            userId: auth.userId,
           },
         });
         console.log(`[tink-callback] Created new connection for additional account ${accountId}`);

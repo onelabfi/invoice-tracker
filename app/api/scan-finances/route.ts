@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 /* ------------------------------------------------------------------ */
 /*  Matching helpers (shared with /api/match)                          */
@@ -86,6 +87,9 @@ function matchConfidence(signals: {
  *     - Spending summary (total spend, recurring, top merchants)
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json().catch(() => ({}));
     const { action } = body as { action?: "init" | "analyze" };
@@ -116,6 +120,7 @@ export async function POST(request: NextRequest) {
           country: country || "GB",
           provider: "truelayer",
           status: "pending",
+          userId: auth.userId,
         },
       });
 
@@ -125,9 +130,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ── ANALYZE: fetch transactions and build summary ──────────────
-    // Find all connected TrueLayer accounts
+    // Find this user's connected TrueLayer accounts
     const connections = await prisma.bankConnection.findMany({
       where: {
+        userId: auth.userId,
         provider: "truelayer",
         status: "connected",
         accessToken: { not: null },
@@ -199,6 +205,7 @@ export async function POST(request: NextRequest) {
                   bankAccount: conn.accountName ?? conn.bankName,
                   connectionId: conn.id,
                   rawData: JSON.stringify(txn),
+                  userId: auth.userId,
                 };
               })
               .filter((t): t is NonNullable<typeof t> => t !== null);
@@ -264,10 +271,12 @@ export async function POST(request: NextRequest) {
 
     // ── RECONCILIATION: match invoices to transactions ───────────
     const unpaidInvoices = await prisma.invoice.findMany({
-      where: { status: { in: ["unpaid", "overdue"] } },
+      where: { userId: auth.userId, status: { in: ["unpaid", "overdue"] } },
     });
 
-    const allTransactions = await prisma.transaction.findMany();
+    const allTransactions = await prisma.transaction.findMany({
+      where: { userId: auth.userId },
+    });
 
     // Get existing matches to avoid duplicates
     const existingMatches = await prisma.match.findMany({
@@ -348,6 +357,7 @@ export async function POST(request: NextRequest) {
             type: "success",
             invoiceId: invoice.id,
             actionType: "view",
+            userId: auth.userId,
           },
         });
 
@@ -378,6 +388,7 @@ export async function POST(request: NextRequest) {
             type: "warning",
             invoiceId: invoice.id,
             actionType: "view",
+            userId: auth.userId,
           },
         });
 

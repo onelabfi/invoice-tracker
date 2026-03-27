@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import { logAudit, requestMeta } from "@/lib/audit";
+import { apiError } from "@/lib/errors";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+    // Compound where clause prevents IDOR
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: params.id, userId: auth.userId },
       include: {
         originalInvoice: { select: { id: true, vendor: true, invoiceNumber: true } },
         reminders: { select: { id: true, amount: true } },
@@ -34,7 +41,19 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
+    // Verify ownership before updating
+    const existing = await prisma.invoice.findFirst({
+      where: { id: params.id, userId: auth.userId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
     const data = await request.json();
     const updateData: Record<string, unknown> = {};
 
@@ -59,21 +78,39 @@ export async function PATCH(
       data: updateData,
     });
 
+    const { ip, userAgent } = requestMeta(request);
+    logAudit({
+      userId: auth.userId,
+      action: "UPDATE_INVOICE",
+      resourceId: params.id,
+      ip,
+      userAgent,
+      metadata: { fields: Object.keys(updateData) },
+    });
+
     return NextResponse.json(invoice);
   } catch (error) {
-    console.error("Failed to update invoice:", error);
-    return NextResponse.json(
-      { error: "Failed to update invoice" },
-      { status: 500 }
-    );
+    return apiError(error, "invoice.update");
   }
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
+    // Verify ownership before deleting
+    const existing = await prisma.invoice.findFirst({
+      where: { id: params.id, userId: auth.userId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
     // First unlink any reminders pointing to this invoice
     await prisma.invoice.updateMany({
       where: { originalInvoiceId: params.id },
@@ -89,12 +126,17 @@ export async function DELETE(
       where: { id: params.id },
     });
 
+    const { ip, userAgent } = requestMeta(request);
+    logAudit({
+      userId: auth.userId,
+      action: "DELETE_INVOICE",
+      resourceId: params.id,
+      ip,
+      userAgent,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete invoice:", error);
-    return NextResponse.json(
-      { error: "Failed to delete invoice" },
-      { status: 500 }
-    );
+    return apiError(error, "invoice.delete");
   }
 }
